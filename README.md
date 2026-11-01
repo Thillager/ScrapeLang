@@ -1,6 +1,6 @@
 # ScrapeLang
 
-Scrape ist ein Projekt für die Übersetzung einer Java-ähnlichen Skriptsprache in Scratch-/TurboWarp-Projekte (`.sb3`) sowie die Rückumwandlung von Scratch-Projekten in Scrape-Quellcode.
+ScrapeLang ist ein Projekt für die Übersetzung einer Java-ähnlichen Skriptsprache in Scratch-/TurboWarp-Projekte (`.sb3`) sowie die Rückumwandlung von Scratch-Projekten in Scrape-Quellcode.
 
 Das Repository enthält drei zentrale Komponenten:
 
