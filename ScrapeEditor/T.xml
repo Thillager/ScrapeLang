@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project>
   <mainClass>Main</mainClass>
-  <appName>ScratchIDE</appName>
-  <version>1.0.0</version>
+  <appName>ScrapeEditor</appName>
+  <version>1.0.1</version>
   <winUpgradeUuid>f71192ae-5cb5-4db5-97a4-084468f7898d</winUpgradeUuid>
   <customRunParams></customRunParams>
   <customJPackageParams></customJPackageParams>
