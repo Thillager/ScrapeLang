@@ -2,9 +2,9 @@
 <project>
   <mainClass>Main</mainClass>
   <appName>ScrapeEditor</appName>
-  <version>1.0.1</version>
+  <version>1.0.2</version>
   <winUpgradeUuid>f71192ae-5cb5-4db5-97a4-084468f7898d</winUpgradeUuid>
   <customRunParams></customRunParams>
   <customJPackageParams></customJPackageParams>
-  <customJPackageArgs></customJPackageArgs>
+  <customJPackageArgs>--resource-dir src/main/resources</customJPackageArgs>
 </project>
