@@ -1,16 +1,16 @@
 """
 Detranspiler.py  v1.0
 ══════════════════════════════════════════════
-.sb3  →  Scrape  (Java-ähnliche Hochsprache)
+Scratch 3 / TurboWarp .sb3  →  Java-ähnliche Syntax
 
 Unterstützt alle Blöcke aus Transpiler.py v5.0:
   • Motion, Looks, Sound, Events, Control
   • Sensing, Operators, Data (Variablen, Listen)
   • Pen-Erweiterung
   • Custom Blocks (define / void)
-  • Block-Kommentare → // Kommentare
+  • Kommentare (Scratch Comments → // Kommentare)
   • Watch-Modus (--watch)
-  • --output <datei.scrape>
+  • --output <datei.scratch>
 """
 
 import json, zipfile, sys, time, re
@@ -39,7 +39,7 @@ def _looks_num(s) -> bool:
 
 
 # ═══════════════════════════════════════════════════════
-#  Projektdatei lesen
+#  SB3 lesen
 # ═══════════════════════════════════════════════════════
 
 def read_sb3(path: str) -> dict:
@@ -561,9 +561,7 @@ class TargetDecompiler:
         t        = self.target
         is_stage = t.get("isStage", False)
         kind     = "Stage" if is_stage else "Sprite"
-        # "Stage" ist im Scrape-Transpiler ein reserviertes Schlüsselwort.
-        # Die Scratch-Bühne erhält deshalb im Quelltext einen normalen Bezeichner.
-        name     = "Buehne" if is_stage else t.get("name", "Unbekannt")
+        name     = t.get("name", "Unbekannt")
 
         lines = [f"public {kind} {name} {{"]
 
@@ -680,9 +678,16 @@ class TargetDecompiler:
             msg = r.field(hat_block, "BROADCAST_OPTION") or "?"
             header = f'onBroadcastReceived("{msg}") {{'
         elif op == "control_start_as_clone":
-            header = "// onCloneCreated (in Scrape nicht unterstützt) {"
+            header = "onCloneCreated {"
         else:
-            header = f"// {op} {{"
+            # Unbekannter Hat-Block: Body als Kommentar ausgeben, kein kaputtes { }
+            body = []
+            if hat_block.get("next"):
+                body = self.stmt.chain_to_lines(hat_block["next"], level=1)
+            comment_lines = [f"// [unbekannter Hat-Block: {op}]"]
+            for line in body:
+                comment_lines.append("// " + line)
+            return comment_lines
 
         body = []
         if hat_block.get("next"):
@@ -692,7 +697,7 @@ class TargetDecompiler:
 
 
 # ═══════════════════════════════════════════════════════
-#  Haupt-Konverter
+#  Haupt-Decompiler
 # ═══════════════════════════════════════════════════════
 
 def decompile_sb3(sb3_path: str) -> str:
@@ -746,7 +751,7 @@ def compile_once(src_path: Path, out_path: Path, verbose=True) -> bool:
             print(f"✓  {out_path}  ({lines} Zeilen, {size:,} Bytes)")
         return True
     except zipfile.BadZipFile:
-        print(f"  ✗  Keine gültige Projektdatei (.sb3): {src_path}")
+        print(f"  ✗  Keine gültige .sb3-Datei: {src_path}")
         return False
     except Exception as e:
         print(f"  ✗  Fehler: {e}")
@@ -792,21 +797,19 @@ def print_help():
     print("""
 Detranspiler.py  v1.0
 ────────────────────────────────────────────────────────
-Wandelt .sb3-Projektdateien in Scrape-Quellcode um.
-
 VERWENDUNG:
   python detranspiler.py <eingabe.sb3> [Optionen]
 
 OPTIONEN:
-  --output <datei.scrape>   Ausgabedatei (Standard: output.scrape)
-  --watch                   Watch-Modus: konvertiert bei Dateiänderung neu
-  --help                    Diese Hilfe anzeigen
+  --output <datei.scratch>   Ausgabedatei (Standard: output.scratch)
+  --watch                    Watch-Modus: detranspiliert bei Dateiänderung neu
+  --help                     Diese Hilfe anzeigen
 
 BEISPIELE:
   python detranspiler.py spiel.sb3
-  python detranspiler.py spiel.sb3 --output spiel.scrape
+  python detranspiler.py spiel.sb3 --output spiel.scratch
   python detranspiler.py spiel.sb3 --watch
-  python detranspiler.py spiel.sb3 --output meinspiel.scrape --watch
+  python detranspiler.py spiel.sb3 --output meinspiel.scratch --watch
 
 Keine temporären Dateien außerhalb des Ausgabepfads.
 """)
@@ -820,7 +823,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     args    = sys.argv[1:]
     infile  = None
-    outfile = "output.scrape"
+    outfile = "output.scratch"
     watch   = False
 
     i = 0
@@ -858,7 +861,7 @@ def main():
         sys.exit(1)
 
     print("\n── Fertig! ──────────────────────────────────")
-    print(f"   Scrape-Quellcode: {out_path}")
+    print(f"   Öffne {out_path} in deinem Editor.")
 
 
 if __name__ == "__main__":
