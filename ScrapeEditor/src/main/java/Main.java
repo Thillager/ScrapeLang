@@ -157,6 +157,32 @@ public class Main extends JFrame {
 		ac("stampPen",        "stampPen();",                 "stampPen()",          "Stempelt Abbild des Sprites",                           0);
 		ac("erasePen",        "erasePen();",                 "erasePen()",          "Löscht alle Stiftspuren",                               0);
 
+		// ── Music-Erweiterung (import "music";) ───────────────────────
+		ac("playDrum",        "playDrum(, );",               "playDrum(drum, beats)",   "Schlagzeug spielen (1=Bass, 2=Snare, ...)",        3);
+		ac("restForBeats",    "restForBeats();",             "restForBeats(beats)",     "Pause machen",                                     2);
+		ac("playNote",        "playNote(, );",               "playNote(note, beats)",   "Note spielen (60=Mittleres C)",                    3);
+		ac("setInstrument",   "setInstrument();",            "setInstrument(num)",      "Instrument setzen (1–21)",                         2);
+		ac("setTempo",        "setTempo();",                 "setTempo(bpm)",           "Tempo setzen (Schläge pro Minute)",                2);
+		ac("changeTempo",     "changeTempo();",              "changeTempo(delta)",      "Tempo ändern",                                     2);
+		ac("getTempo",        "getTempo",                    "getTempo",                "Aktuelles Tempo (Ausdruck)",                       0);
+
+		// ── Video-Sensing-Erweiterung (import "video";) ───────────────
+		ac("videoOn",                 "videoOn();",                       "videoOn()",                        "Kamera einschalten",                         0);
+		ac("videoOff",                "videoOff();",                      "videoOff()",                       "Kamera ausschalten",                         0);
+		ac("videoFlipped",            "videoFlipped();",                  "videoFlipped()",                   "Kamera gespiegelt einschalten",              0);
+		ac("setVideoTransparency",    "setVideoTransparency();",          "setVideoTransparency(percent)",    "Kamera-Transparenz setzen (0–100)",          2);
+		ac("videoMotion",             "videoMotion(\"this sprite\")",     "videoMotion(\"subject\")",         "Videobewegung auf Objekt (Ausdruck)",        1);
+		ac("videoDirection",          "videoDirection(\"this sprite\")",  "videoDirection(\"subject\")",      "Videorichtung auf Objekt (Ausdruck)",        1);
+
+		// ── Text2Speech-Erweiterung (import "text2speech";) ───────────
+		ac("speak",        "speak(\"\");",          "speak(\"text\")",          "Text vorlesen (wartet bis fertig)",                   3);
+		ac("setVoice",     "setVoice(\"Alto\");",   "setVoice(\"Alto\")",       "Stimme: Alto, Tenor, Squeak, Giant, Kitten",          6);
+		ac("setLanguage",  "setLanguage(\"de\");",  "setLanguage(\"de\")",      "Sprache setzen (z.B. \"de\", \"en\", \"fr\")",        4);
+
+		// ── Translate-Erweiterung (import "translate";) ───────────────
+		ac("translate",       "translate(\"\", \"de\")",   "translate(text, \"lang\")",   "Text übersetzen (Ausdruck)",         6);
+		ac("viewerLanguage",  "viewerLanguage",             "viewerLanguage",              "Sprache des Betrachters (Ausdruck)", 0);
+
 		// ── Math-Funktionen ───────────────────────────────────────────
 		ac("Math.random",  "Math.random(, )",              "Math.random(von, bis)",  "Zufallszahl zwischen von und bis",                 2);
 		ac("Math.round",   "Math.round()",                 "Math.round(n)",           "Rundet auf nächste ganze Zahl",                   1);
