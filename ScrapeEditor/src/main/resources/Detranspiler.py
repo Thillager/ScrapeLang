@@ -1,20 +1,78 @@
 """
-Detranspiler.py  v1.0
+Detranspiler.py  v1.2
 ══════════════════════════════════════════════
-.sb3  →  Scrape  (Java-ähnliche Hochsprache)
+Scratch 3 / TurboWarp .sb3  →  Java-ähnliche Syntax
 
 Unterstützt alle Blöcke aus Transpiler.py v5.0:
   • Motion, Looks, Sound, Events, Control
   • Sensing, Operators, Data (Variablen, Listen)
   • Pen-Erweiterung
   • Custom Blocks (define / void)
-  • Block-Kommentare → // Kommentare
+  • Kommentare (Scratch Comments → // Kommentare)
   • Watch-Modus (--watch)
-  • --output <datei.scrape>
+  • --output <datei.scrape>  (Standard: output.scrape)
+
+Neu in v1.1:
+  • Identifier-Sanitisierung: ungültige Zeichen (z.B. #, -, Leerzeichen)
+    werden durch _ ersetzt, damit der Output immer gültiges Scrape ist.
+  • Variablen- und Sprites-Namen die mit einer Ziffer beginnen erhalten
+    ein führendes _ (z.B. "2fast" → "_2fast").
+  • Bei umbenannten Namen wird ein Kommentar-Header ausgegeben.
+  • Alle Stellen die auf den Originalnamen verweisen (Blöcke, Felder,
+    Custom-Block-Argumente) werden über eine zentrale Name-Map übersetzt.
 """
 
 import json, zipfile, sys, time, re
 from pathlib import Path
+
+
+# ═══════════════════════════════════════════════════════
+#  Identifier-Sanitisierung
+# ═══════════════════════════════════════════════════════
+
+def sanitize_identifier(name: str) -> str:
+    """
+    Macht einen beliebigen String zu einem gültigen Scrape-Bezeichner.
+
+    Regeln (entsprechen dem Transpiler-Lexer):
+      • Erlaubt:  [A-Za-z_][A-Za-z0-9_]*
+      • Ungültige Zeichen → _
+      • Beginnt mit Ziffer → führendes _ anhängen
+      • Leerstring → "_var"
+
+    Beispiele:
+      "Song#"       → "Song_"
+      "my-var"      → "my_var"
+      "2fast"       → "_2fast"
+      "hello world" → "hello_world"
+      "#hash"       → "_hash"
+    """
+    if not name:
+        return "_var"
+    result = re.sub(r'[^A-Za-z0-9_]', '_', name)
+    if result[0].isdigit():
+        result = '_' + result
+    return result
+
+
+def build_name_map(names: list[str]) -> dict[str, str]:
+    """
+    Erstellt ein Mapping original_name → sanitized_name für eine Liste von Namen.
+    Stellt sicher dass sanitized-Namen eindeutig sind (Suffix _2, _3, … bei Kollision).
+    """
+    used: set[str] = set()
+    mapping: dict[str, str] = {}
+    for name in names:
+        clean = sanitize_identifier(name)
+        if clean in used:
+            # Kollision → Suffix anhängen
+            i = 2
+            while f"{clean}_{i}" in used:
+                i += 1
+            clean = f"{clean}_{i}"
+        used.add(clean)
+        mapping[name] = clean
+    return mapping
 
 
 # ═══════════════════════════════════════════════════════
@@ -39,7 +97,7 @@ def _looks_num(s) -> bool:
 
 
 # ═══════════════════════════════════════════════════════
-#  Projektdatei lesen
+#  SB3 lesen
 # ═══════════════════════════════════════════════════════
 
 def read_sb3(path: str) -> dict:
@@ -53,14 +111,20 @@ def read_sb3(path: str) -> dict:
 # ═══════════════════════════════════════════════════════
 
 class BlockResolver:
-    def __init__(self, blocks: dict, comments: dict = None):
-        self.blocks = blocks
+    def __init__(self, blocks: dict, comments: dict = None,
+                 name_map: dict = None):
+        self.blocks   = blocks
         self.comments = comments or {}
+        self.name_map = name_map or {}   # original → sanitized
         self._cmap = {
             c["blockId"]: c["text"]
             for c in self.comments.values()
             if c.get("blockId")
         }
+
+    def sanitize(self, name: str) -> str:
+        """Übersetzt einen Originalnamen in den sanitisierten Bezeichner."""
+        return self.name_map.get(name, sanitize_identifier(name))
 
     def comment_for(self, bid) -> str | None:
         return self._cmap.get(bid)
@@ -113,7 +177,8 @@ class ExprGen:
             if kind == 11:
                 return _str(raw)
             if kind in (12, 13):
-                return str(raw)
+                # Variable/List reference — sanitize the name
+                return self.r.sanitize(str(raw))
             return _str(str(raw))
         if isinstance(val, str) and val in self.r.blocks:
             return self.from_block(val, paren)
@@ -148,17 +213,22 @@ class ExprGen:
         if op == "text":                  return _str(r.field(b, "TEXT") or "")
         if op == "colour_picker":         return _str(r.field(b, "COLOUR") or "#000000")
 
-        # Variables / Lists
+        # Variables / Lists — Namen sanitizen!
         if op == "data_variable":
-            return r.field(b, "VARIABLE") or "?"
+            raw = r.field(b, "VARIABLE") or "?"
+            return r.sanitize(raw)
         if op == "data_itemoflist":
-            return f"{r.field(b,'LIST') or '?'}[{self._i(b,'INDEX')}]"
+            raw = r.field(b, "LIST") or "?"
+            return f"{r.sanitize(raw)}[{self._i(b,'INDEX')}]"
         if op == "data_lengthoflist":
-            return f"{r.field(b,'LIST') or '?'}.length()"
+            raw = r.field(b, "LIST") or "?"
+            return f"{r.sanitize(raw)}.length()"
         if op == "data_listcontainsitem":
-            return f"{r.field(b,'LIST') or '?'}.contains({self._i(b,'ITEM')})"
+            raw = r.field(b, "LIST") or "?"
+            return f"{r.sanitize(raw)}.contains({self._i(b,'ITEM')})"
         if op == "data_itemnumoflist":
-            return f"{r.field(b,'LIST') or '?'}.indexOf({self._i(b,'ITEM')})"
+            raw = r.field(b, "LIST") or "?"
+            return f"{r.sanitize(raw)}.indexOf({self._i(b,'ITEM')})"
 
         # Operators
         ARITH = {
@@ -240,9 +310,10 @@ class ExprGen:
             tgt = r.field(r.blocks.get(mid,{}), "DISTANCETOMENU") or "" if mid else ""
             return f'distanceTo("{tgt}")'
 
-        # Custom block argument reporters
+        # Custom block argument reporters — Namen sanitizen
         if op in ("argument_reporter_string_number", "argument_reporter_boolean"):
-            return r.field(b, "VALUE") or "?"
+            raw = r.field(b, "VALUE") or "?"
+            return r.sanitize(raw)
 
         # Looks reporters
         if op == "looks_costumenumbername":
@@ -304,6 +375,7 @@ class StmtGen:
 
     def _dispatch(self, b, op, level) -> str | list | None:
         pad = "    " * level
+        r   = self.r  # shorthand
 
         # Hat blocks → handled separately
         if op in (
@@ -469,11 +541,11 @@ class StmtGen:
 
         # ── Data: Variables ───────────────────────────
         if op == "data_setvariableto":
-            name = self._fld(b, "VARIABLE")
+            name = r.sanitize(self._fld(b, "VARIABLE"))
             val  = self._inp(b, "VALUE")
             return f"{pad}{name} = {val};"
         if op == "data_changevariableby":
-            name = self._fld(b, "VARIABLE")
+            name = r.sanitize(self._fld(b, "VARIABLE"))
             val  = self._inp(b, "VALUE")
             if val == "1":   return f"{pad}{name}++;"
             if val == "-1":  return f"{pad}{name}--;"
@@ -485,23 +557,31 @@ class StmtGen:
                 pass
             return f"{pad}{name} += {val};"
         if op == "data_showvariable":
-            return f'{pad}showVar("{self._fld(b,"VARIABLE")}");'
+            name = r.sanitize(self._fld(b, "VARIABLE"))
+            return f'{pad}showVar("{name}");'
         if op == "data_hidevariable":
-            return f'{pad}hideVar("{self._fld(b,"VARIABLE")}");'
+            name = r.sanitize(self._fld(b, "VARIABLE"))
+            return f'{pad}hideVar("{name}");'
 
         # ── Data: Lists ───────────────────────────────
         if op == "data_addtolist":
-            return f"{pad}{self._fld(b,'LIST')}.add({self._inp(b,'ITEM')});"
+            lname = r.sanitize(self._fld(b, "LIST"))
+            return f"{pad}{lname}.add({self._inp(b,'ITEM')});"
         if op == "data_deleteoflist":
-            return f"{pad}{self._fld(b,'LIST')}.delete({self._inp(b,'INDEX')});"
+            lname = r.sanitize(self._fld(b, "LIST"))
+            return f"{pad}{lname}.delete({self._inp(b,'INDEX')});"
         if op == "data_insertatlist":
-            return f"{pad}{self._fld(b,'LIST')}.insert({self._inp(b,'INDEX')}, {self._inp(b,'ITEM')});"
+            lname = r.sanitize(self._fld(b, "LIST"))
+            return f"{pad}{lname}.insert({self._inp(b,'INDEX')}, {self._inp(b,'ITEM')});"
         if op == "data_replaceitemoflist":
-            return f"{pad}{self._fld(b,'LIST')}.replace({self._inp(b,'INDEX')}, {self._inp(b,'ITEM')});"
+            lname = r.sanitize(self._fld(b, "LIST"))
+            return f"{pad}{lname}.replace({self._inp(b,'INDEX')}, {self._inp(b,'ITEM')});"
         if op == "data_showlist":
-            return f"{pad}{self._fld(b,'LIST')}.show();"
+            lname = r.sanitize(self._fld(b, "LIST"))
+            return f"{pad}{lname}.show();"
         if op == "data_hidelist":
-            return f"{pad}{self._fld(b,'LIST')}.hide();"
+            lname = r.sanitize(self._fld(b, "LIST"))
+            return f"{pad}{lname}.hide();"
 
         # ── Pen ───────────────────────────────────────
         if op == "pen_penDown":             return f"{pad}penDown();"
@@ -521,7 +601,9 @@ class StmtGen:
                 arg_ids = json.loads(mutation.get("argumentids", "[]"))
             except Exception:
                 arg_ids = []
-            pname = re.split(r' %[snb]', proccode)[0].strip()
+            # Prozedurname sanitizen
+            pname_raw = re.split(r' %[snb]', proccode)[0].strip()
+            pname = sanitize_identifier(pname_raw)
             args = []
             for aid in arg_ids:
                 raw = b.get("inputs", {}).get(aid)
@@ -548,63 +630,130 @@ class StmtGen:
 # ═══════════════════════════════════════════════════════
 
 class TargetDecompiler:
-    def __init__(self, target: dict):
-        self.target   = target
+    def __init__(self, target: dict, global_name_map: dict = None):
+        """
+        global_name_map: Mapping für globale (Stage-)Variablen, damit
+        Sprites die Stage-Variablen unter dem sanitisierten Namen referenzieren.
+        """
+        self.target = target
+
+        # Alle Namen die sanitisiert werden müssen sammeln:
+        # Variablen, Listen, Custom-Block-Argumente, Sprite-/Stage-Name
+        all_names: list[str] = []
+        for var_id, var_data in target.get("variables", {}).items():
+            all_names.append(var_data[0])
+        for lst_id, lst_data in target.get("lists", {}).items():
+            all_names.append(lst_data[0])
+        for bid, b in target.get("blocks", {}).items():
+            if b.get("opcode") == "procedures_prototype":
+                m = b.get("mutation", {})
+                try:
+                    param_names = json.loads(m.get("argumentnames", "[]"))
+                    all_names.extend(param_names)
+                except Exception:
+                    pass
+                # Auch der Prozedurname selbst
+                proccode = m.get("proccode", "")
+                pname_raw = re.split(r' %[snb]', proccode)[0].strip()
+                if pname_raw:
+                    all_names.append(pname_raw)
+
+        self._local_name_map = build_name_map(all_names)
+
+        # Globale Namen (Stage-Variablen) übernehmen und lokale hinzufügen
+        combined_map = dict(global_name_map or {})
+        combined_map.update(self._local_name_map)
+
         self.resolver = BlockResolver(
             target.get("blocks", {}),
-            target.get("comments", {})
+            target.get("comments", {}),
+            name_map=combined_map,
         )
         self.expr = ExprGen(self.resolver)
         self.stmt = StmtGen(self.resolver, self.expr)
+
+    @property
+    def name_map(self) -> dict:
+        return self._local_name_map
 
     def decompile(self) -> str:
         t        = self.target
         is_stage = t.get("isStage", False)
         kind     = "Stage" if is_stage else "Sprite"
-        # "Stage" ist im Scrape-Transpiler ein reserviertes Schlüsselwort.
-        # Die Scratch-Bühne erhält deshalb im Quelltext einen normalen Bezeichner.
-        name     = "Buehne" if is_stage else t.get("name", "Unbekannt")
+        raw_name = t.get("name", "Unbekannt")
+        name     = sanitize_identifier(raw_name)
 
-        lines = [f"public {kind} {name} {{"]
-
+        # ── Körper vorgenerieren (für Rename-Erkennung) ──────
         # Assets
+        asset_lines = []
         for c in t.get("costumes", []):
-            cname = c.get("name", "?")
             tag = "addBackdrop" if is_stage else "addCostume"
-            lines.append(f'    {tag}("{cname}");')
+            asset_lines.append(f'    {tag}("{c.get("name","?")}");')
         for s in t.get("sounds", []):
-            lines.append(f'    addSound("{s.get("name","?")}");')
+            asset_lines.append(f'    addSound("{s.get("name","?")}");')
 
-        if t.get("costumes") or t.get("sounds"):
-            lines.append("")
-
-        # Variables
+        # Variables + Lists
+        var_lines = []
         scope_tag = "public" if is_stage else "private"
         for var_id, var_data in t.get("variables", {}).items():
-            vname = var_data[0]
-            vval  = var_data[1]
-            val_str = _num(vval) if _looks_num(vval) else _str(str(vval))
-            lines.append(f"    {scope_tag} var {vname} = {val_str};")
-
-        # Lists (just declare as comments — no init syntax in the language)
+            vname_raw = var_data[0]
+            vname     = self.resolver.sanitize(vname_raw)
+            vval      = var_data[1]
+            val_str   = _num(vval) if _looks_num(vval) else _str(str(vval))
+            suffix    = f"  // war: {repr(vname_raw)}" if vname != vname_raw else ""
+            var_lines.append(f"    {scope_tag} var {vname} = {val_str};{suffix}")
         for lst_id, lst_data in t.get("lists", {}).items():
-            lines.append(f"    // var {lst_data[0]} = [];  // Liste")
+            lname_raw = lst_data[0]
+            lname     = self.resolver.sanitize(lname_raw)
+            suffix    = f"  // war: {repr(lname_raw)}" if lname != lname_raw else ""
+            var_lines.append(f"    // var {lname} = [];  // Liste{suffix}")
 
-        if t.get("variables") or t.get("lists"):
-            lines.append("")
-
-        # Custom block definitions
+        # Custom defs + scripts
+        def_lines = []
         for cdef in self._find_custom_defs():
-            for l in cdef:
-                lines.append("    " + l)
-            lines.append("")
-
-        # Event scripts
+            for l in cdef: def_lines.append("    " + l)
+            def_lines.append("")
+        script_lines = []
         for script in self._find_scripts():
-            for l in script:
-                lines.append("    " + l)
+            for l in script: script_lines.append("    " + l)
+            script_lines.append("")
+
+        body_text = "\n".join(var_lines + def_lines + script_lines)
+
+        # ── Welche Renames sind wirklich relevant? ───────────
+        # Lokale Renames (Vars/Lists/Params dieses Targets): immer zeigen
+        # Globale Renames (Stage-Vars in Sprites): nur wenn sanitisierter Name im Body vorkommt
+        all_renames = {orig: san for orig, san in self.resolver.name_map.items() if orig != san}
+        local_originals = set(self._local_name_map.keys())
+
+        relevant_renames = {}
+        for orig, san in all_renames.items():
+            if orig in local_originals:
+                relevant_renames[orig] = san          # lokale Rename → immer
+            elif re.search(r'\b' + re.escape(san) + r'\b', body_text):
+                relevant_renames[orig] = san          # globale Rename → nur wenn verwendet
+
+        # Auch Sprite-/Stage-Name selbst
+        if name != raw_name:
+            relevant_renames[raw_name] = name
+
+        # ── Ausgabe zusammenbauen ────────────────────────────
+        lines = []
+        if relevant_renames:
+            lines.append("// ⚠  Folgende Namen wurden für Scrape sanitisiert (ungültige Zeichen ersetzt):")
+            for orig, san in sorted(relevant_renames.items()):
+                lines.append(f"//    {repr(orig)} → {san}")
             lines.append("")
 
+        lines.append(f"public {kind} {name} {{")
+        if asset_lines:
+            lines.extend(asset_lines)
+            lines.append("")
+        if var_lines:
+            lines.extend(var_lines)
+            lines.append("")
+        lines.extend(def_lines)
+        lines.extend(script_lines)
         lines.append("}")
         return "\n".join(lines)
 
@@ -631,13 +780,16 @@ class TargetDecompiler:
 
         warp  = mutation.get("warp", "false") == "true"
         types = re.findall(r'%[snb]', proccode)
-        pname = re.split(r' %[snb]', proccode)[0].strip()
+        pname_raw = re.split(r' %[snb]', proccode)[0].strip()
+        pname = sanitize_identifier(pname_raw)
 
         type_prefix = {"%s": "", "%n": "number ", "%b": "boolean "}
         params = []
         for i, pn in enumerate(param_names):
             tc = types[i] if i < len(types) else "%s"
-            params.append(f"{type_prefix.get(tc,'')}{pn}")
+            # Parameternamen ebenfalls sanitizen
+            pn_clean = r.sanitize(pn)
+            params.append(f"{type_prefix.get(tc,'')}{pn_clean}")
 
         mod = "private " if warp else ""
         sig = f"{mod}void {pname}({', '.join(params)}) {{"
@@ -680,9 +832,15 @@ class TargetDecompiler:
             msg = r.field(hat_block, "BROADCAST_OPTION") or "?"
             header = f'onBroadcastReceived("{msg}") {{'
         elif op == "control_start_as_clone":
-            header = "// onCloneCreated (in Scrape nicht unterstützt) {"
+            header = "onCloneCreated {"
         else:
-            header = f"// {op} {{"
+            body = []
+            if hat_block.get("next"):
+                body = self.stmt.chain_to_lines(hat_block["next"], level=1)
+            comment_lines = [f"// [unbekannter Hat-Block: {op}]"]
+            for line in body:
+                comment_lines.append("// " + line)
+            return comment_lines
 
         body = []
         if hat_block.get("next"):
@@ -692,7 +850,7 @@ class TargetDecompiler:
 
 
 # ═══════════════════════════════════════════════════════
-#  Haupt-Konverter
+#  Haupt-Decompiler
 # ═══════════════════════════════════════════════════════
 
 def decompile_sb3(sb3_path: str) -> str:
@@ -716,10 +874,19 @@ def decompile_sb3(sb3_path: str) -> str:
         lines.append("")
 
     # Stage first, then sprites
+    # Stage-Variablen global bekannt machen (damit Sprites sie sanitisiert referenzieren)
     stage   = next((t for t in targets if t.get("isStage")), None)
     sprites = [t for t in targets if not t.get("isStage")]
+
+    global_name_map: dict[str, str] = {}
+    if stage:
+        # Stage-Variablen und -Listen vorberechnen
+        all_global = [v[0] for v in stage.get("variables", {}).values()]
+        all_global += [l[0] for l in stage.get("lists", {}).values()]
+        global_name_map = build_name_map(all_global)
+
     for target in ([stage] if stage else []) + sprites:
-        dc = TargetDecompiler(target)
+        dc = TargetDecompiler(target, global_name_map=global_name_map)
         lines.append(dc.decompile())
         lines.append("")
 
@@ -746,7 +913,7 @@ def compile_once(src_path: Path, out_path: Path, verbose=True) -> bool:
             print(f"✓  {out_path}  ({lines} Zeilen, {size:,} Bytes)")
         return True
     except zipfile.BadZipFile:
-        print(f"  ✗  Keine gültige Projektdatei (.sb3): {src_path}")
+        print(f"  ✗  Keine gültige .sb3-Datei: {src_path}")
         return False
     except Exception as e:
         print(f"  ✗  Fehler: {e}")
@@ -790,17 +957,15 @@ def watch_mode(src_path: Path, out_path: Path):
 
 def print_help():
     print("""
-Detranspiler.py  v1.0
+Detranspiler.py  v1.2
 ────────────────────────────────────────────────────────
-Wandelt .sb3-Projektdateien in Scrape-Quellcode um.
-
 VERWENDUNG:
   python detranspiler.py <eingabe.sb3> [Optionen]
 
 OPTIONEN:
   --output <datei.scrape>   Ausgabedatei (Standard: output.scrape)
-  --watch                   Watch-Modus: konvertiert bei Dateiänderung neu
-  --help                    Diese Hilfe anzeigen
+  --watch                    Watch-Modus: detranspiliert bei Dateiänderung neu
+  --help                     Diese Hilfe anzeigen
 
 BEISPIELE:
   python detranspiler.py spiel.sb3
@@ -808,7 +973,11 @@ BEISPIELE:
   python detranspiler.py spiel.sb3 --watch
   python detranspiler.py spiel.sb3 --output meinspiel.scrape --watch
 
-Keine temporären Dateien außerhalb des Ausgabepfads.
+Identifier-Sanitisierung:
+  Variablen- und Sprite-Namen die in Scratch gültig sind, aber ungültige
+  Zeichen für Scrape enthalten (z.B. #, -, Leerzeichen), werden automatisch
+  bereinigt:  Song# → Song_   my-var → my_var   2fast → _2fast
+  Am Anfang jedes betroffenen Targets erscheint ein Kommentar mit dem Mapping.
 """)
 
 
@@ -858,7 +1027,7 @@ def main():
         sys.exit(1)
 
     print("\n── Fertig! ──────────────────────────────────")
-    print(f"   Scrape-Quellcode: {out_path}")
+    print(f"   Öffne {out_path} in deinem Editor.")
 
 
 if __name__ == "__main__":

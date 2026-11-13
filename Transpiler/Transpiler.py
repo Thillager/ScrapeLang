@@ -1,9 +1,19 @@
 """
-Transpiler.py  v5.0
+Transpiler.py  v5.2
 ════════════════════════════
 Scrape (Java-ähnliche Syntax) → .sb3-Projektdatei
 
-Neu in v4:
+Neu in v5.1:
+  • switchCostume/playSound/animate: Validierung gibt Warnung statt Fehler
+    (Referenzen auf nicht vorhandene Kostüme/Sounds kompilieren trotzdem,
+    da sie auch im Original-sb3 vorkommen können)
+  • Identifier-Sanitisierung im Tokenizer:
+    Bezeichner mit ungültigen Zeichen (z.B. Song#, my-var) werden automatisch
+    bereinigt (# → _, - → _) und eine Warnung wird ausgegeben.
+    Dadurch können .scrape-Dateien die vom Detranspiler v1.0 erzeugt wurden
+    (vor der Sanitisierung) direkt kompiliert werden.
+
+Neu in v4/v5:
   • Zeilennummern in allen Fehlermeldungen
   • elseif-Ketten (else if { } else if { } else { })
   • import "Erweiterung";  für Erweiterungen
@@ -30,6 +40,24 @@ def new_id() -> str:
 
 def md5hex(data: bytes) -> str:
     return hashlib.md5(data).hexdigest()
+
+def _sanitize_ident(name: str) -> str:
+    """
+    Bereinigt einen Bezeichner der ungültige Zeichen enthält.
+    Wird im Tokenizer aufgerufen wenn ein IDENT-Token Zeichen enthält
+    die außerhalb von [A-Za-z0-9_] liegen (z.B. Song# → Song_).
+
+    Regeln:
+      • Ungültige Zeichen → _
+      • Beginnt mit Ziffer → führendes _ anhängen
+      • Leerstring → "_var"
+    """
+    if not name:
+        return "_var"
+    result = re.sub(r'[^A-Za-z0-9_]', '_', name)
+    if result[0].isdigit():
+        result = '_' + result
+    return result
 
 
 # ═══════════════════════════════════════════════════════
@@ -268,6 +296,7 @@ KEYWORDS = {
     "penDown","penUp","setPenColor","changePenColor",
     "setPenSize","changePenSize","stampPen","erasePen",
     "broadcast","broadcastAndWait",
+    "onCloneCreated",
     "define","void","public","private","shown","hidden",
     "addCostume","addBackdrop","addSound",
     "random","abs","floor","ceil","sqrt",
@@ -320,6 +349,10 @@ _FIX_HINTS: dict[str, str] = {
     "RBRACKET":  "Eckige Klammer ']' erwartet.",
 }
 
+# ── Extended IDENT: absorbs trailing non-syntax chars (z.B. Song# → als ein Token erkannt)
+# Zeichen die NICHT absorbiert werden: Whitespace und alle Syntaxzeichen von Scrape
+_IDENT_EXTRA = r'[^A-Za-z0-9_\s\(\)\{\}\[\];,=+\-\*/<>!&|.%\"\'\\]'
+_EXTENDED_IDENT = r'[A-Za-z_][A-Za-z0-9_]*(?:' + _IDENT_EXTRA + r'[A-Za-z0-9_]*)*'
 
 TOKEN_PATTERNS = [
     ("COMMENT",  r'//[^\n]*'),
@@ -339,7 +372,7 @@ TOKEN_PATTERNS = [
     ("RBRACKET", r'\]'),
     ("SEMI",     r';'),
     ("COMMA",    r','),
-    ("IDENT",    r'[A-Za-z_][A-Za-z0-9_]*'),
+    ("IDENT",    _EXTENDED_IDENT),   # ← v5.1: extended, sanitized in tokenize()
     ("SKIP",     r'[ \t\r]+'),
     ("MISMATCH", r'.'),
 ]
@@ -354,6 +387,9 @@ def tokenize(source: str) -> list:
     line = Zeilennummer (1-basiert).
     COMMENT-Token werden als ("COMMENT", text_ohne_slashes, line) durchgereicht,
     damit der Parser sie Blöcken als Kommentare zuordnen kann.
+
+    v5.1: IDENT-Token mit ungültigen Zeichen (z.B. Song#) werden automatisch
+    sanitisiert (# → _) und eine Warnung wird ausgegeben.
     """
     tokens = []
     line = 1
@@ -364,12 +400,10 @@ def tokenize(source: str) -> list:
         if kind == "SKIP":
             continue
         if kind == "COMMENT":
-            # // Kommentar → Text ohne führende // und Leerzeichen
             text = value[2:].strip()
             tokens.append(("COMMENT", text, line))
             continue
         if kind == "COMMENT2":
-            # /* ... */ → Text ohne Delimiter
             text = value[2:-2].strip()
             line += value.count("\n")
             tokens.append(("COMMENT", text, line))
@@ -379,8 +413,15 @@ def tokenize(source: str) -> list:
                 f"Zeile {line}: Unbekanntes Zeichen: {value!r}\n"
                 f"     💡 Fix: Sonderzeichen entfernen oder durch gültige Syntax ersetzen."
             )
-        if kind == "IDENT" and value in KEYWORDS:
-            kind = "KEYWORD"
+        if kind == "IDENT":
+            # v5.1: Sanitisierung ungültiger Zeichen in Bezeichnern
+            sanitized = _sanitize_ident(value)
+            if sanitized != value:
+                print(f"  ⚠  Zeile {line}: Bezeichner {value!r} enthält ungültige Zeichen "
+                      f"→ automatisch zu {sanitized!r} sanitisiert")
+                value = sanitized
+            if value in KEYWORDS:
+                kind = "KEYWORD"
         tokens.append((kind, value, line))
     return tokens
 
@@ -451,8 +492,6 @@ class Parser:
     def _collect_inline_comment(self) -> str | None:
         """Gibt den Text eines COMMENT-Tokens zurück, das NACH einem Statement
         auf derselben Zeile steht (Inline-Kommentar). Konsumiert es ebenfalls."""
-        # Nach dem Semikolon steht möglicherweise direkt ein COMMENT auf gleicher Zeile.
-        # Da wir das Semikolon schon konsumiert haben, schauen wir einfach:
         return self._collect_pending_comment()
 
     def consume(self, kind=None, value=None):
@@ -483,7 +522,6 @@ class Parser:
         Inline-Kommentar zurück (oder None)."""
         if self.peek()[1] == ";":
             self.consume()
-        # Inline-Kommentar direkt nach dem Semikolon?
         return self._collect_inline_comment()
 
     def _stmt(self, node: dict, comment: str | None) -> dict:
@@ -493,8 +531,7 @@ class Parser:
         return node
 
     def _recover_to_next_statement(self):
-        """Überspringt Token bis zum nächsten sicheren Wiedereintrittspunkt:
-        ';', '}', oder ein bekanntes Statement-Schlüsselwort / Bezeichner am Zeilenanfang."""
+        """Überspringt Token bis zum nächsten sicheren Wiedereintrittspunkt."""
         SAFE_VALUES = {
             "}", ";", "var", "if", "else", "elseif", "repeat", "forever",
             "repeatUntil", "wait", "waitUntil", "stop", "return",
@@ -503,19 +540,13 @@ class Parser:
             "void", "define", "addCostume", "addBackdrop", "addSound",
             "public", "private",
         }
-        # Fehler-Recovery muss IMMER Fortschritt machen. Wenn der Parser bereits
-        # auf einem SAFE_VALUE steht (z.B. "public"), darf er nicht unverändert
-        # zurückkehren: parse_program würde sonst denselben Token endlos erneut
-        # parsen und der Watch-Prozess sähe wie eingefroren aus.
         start_pos = self.pos
         while self.peek()[0] != "EOF":
             k, v, _ = self.peek()
             if v in SAFE_VALUES or k == "RBRACE":
                 if v == ";":
-                    self.consume()   # Semikolon noch konsumieren
+                    self.consume()
                 elif self.pos == start_pos:
-                    # Fehler trat direkt an einer Recovery-Grenze auf.
-                    # Token überspringen, um eine Endlosschleife zu verhindern.
                     self.pos += 1
                 return
             self.pos += 1
@@ -525,18 +556,15 @@ class Parser:
         targets = []
         while self.peek()[0] != "EOF":
             try:
-                # import-Anweisung auf Top-Level
                 if self.peek()[1] == "import":
                     self._parse_import()
                 else:
                     targets.append(self.parse_target())
             except SyntaxError as e:
                 if str(e) != "__collected__":
-                    # Noch nicht erfasster Fehler → jetzt aufnehmen
                     _, _, ln = self.peek()
                     self.collector.add(ln, str(e))
                 self._recover_to_next_statement()
-        # Nach vollständigem Parsen alle gesammelten Fehler auswerten
         if self.collector.has_errors():
             self.collector.print_all()
             raise SyntaxError("__all_reported__")
@@ -566,8 +594,6 @@ class Parser:
         kind = self.consume("KEYWORD")
         if kind not in ("Sprite", "Stage"):
             raise SyntaxError(f"Zeile {ln}: Erwartet 'Sprite' oder 'Stage', gefunden '{kind}'")
-        # Scratch-Namen dürfen auch reservierte Scrape-Wörter sein (z.B. die
-        # Standard-Bühne heißt "Stage"). Deshalb hier IDENT und KEYWORD erlauben.
         name_kind = self.peek()[0]
         if name_kind in ("IDENT", "KEYWORD"):
             name = self.consume()
@@ -608,24 +634,8 @@ class Parser:
                     self.consume("RPAREN"); self.expect_semi()
                     sounds.append({"name": sname, "path": path})
                 elif v in ("public", "private", "shown", "hidden", "var", "void", "define"):
-                    # ── Modifier-Parsing ──────────────────────────────────────
-                    # Erlaubte Kombinationen (Reihenfolge egal):
-                    #   var / void / define
-                    #   public / private          (Scope: alle Sprites / nur dieser)
-                    #   shown  / hidden           (Monitor anzeigen / verstecken)
-                    #
-                    # Beispiele:
-                    #   public shown var punkte = 0;
-                    #   private hidden var intern = 0;
-                    #   public void zeichne(x) { }
-                    #   private void berechne(x) { }   ← warp (kein Screen-Refresh)
-                    #   hidden void hilfsBlock(x) { }   ← ohne Monitor-Anzeige
-                    #   var x = 0;                      ← implizit public shown
-
-                    scope   = None   # "public" | "private"
-                    display = None   # "shown"  | "hidden"
-
-                    # Alle Modifier konsumieren bis wir bei var/void/define sind
+                    scope   = None
+                    display = None
                     while self.peek()[1] in ("public","private","shown","hidden"):
                         mod = self.consume()
                         if mod in ("public","private"):
@@ -642,27 +652,21 @@ class Parser:
                                     "Nur einen von 'shown' oder 'hidden' angeben.")
                             else:
                                 display = mod
-
-                    # Defaults
                     nv = self.peek()[1]
                     if nv == "var":
                         scope   = scope   or "public"
                         display = display or "shown"
                         decl = self.parse_var_decl()
-                        decl["scope"]   = scope    # "public" = in Stage, "private" = im Sprite
-                        decl["display"] = display  # "shown" = Monitor an, "hidden" = aus
+                        decl["scope"]   = scope
+                        decl["display"] = display
                         scripts.append({"event": {"type": "EventFlagClicked"}, "body": [decl]})
                     elif nv in ("void", "define"):
                         scope   = scope   or "public"
-                        # hidden void → warp (kein Screen-Refresh)
-                        # private void → warp (kein Screen-Refresh)
-                        # display spielt bei Methoden keine Rolle (kein Monitor)
                         warp = (scope == "private") or (display == "hidden")
                         cd = self.parse_custom_def()
                         cd["scope"] = scope
                         cd["warp"]  = warp
                         custom_defs.append(cd)
-                        # custom_blocks speichert nur Namen (für Aufruf-Erkennung)
                         raw = cd["params"]
                         self.custom_blocks[cd["name"]] = (
                             [p[0] for p in raw] if raw and not isinstance(raw[0], str) else raw
@@ -675,7 +679,7 @@ class Parser:
                             "Beispiel: public var punkte = 0;  oder  private void hilfsBlock() {}")
                         self._recover_to_next_statement()
                 elif v in ("onFlagClicked","onKeyPressed","onSpriteClicked",
-                           "onBackdropChanged","onBroadcastReceived"):
+                           "onBackdropChanged","onBroadcastReceived","onCloneCreated"):
                     event, body = self.parse_script()
                     scripts.append({"event": event, "body": body})
                 else:
@@ -707,6 +711,8 @@ class Parser:
         if v == "onBroadcastReceived":
             self.consume("LPAREN"); msg = self.consume("STRING").strip('"'); self.consume("RPAREN")
             return {"type": "EventBroadcastReceived", "message": msg}, self.parse_block()
+        if v == "onCloneCreated":
+            return {"type": "EventCloneStarted"}, self.parse_block()
         raise SyntaxError(f"Zeile {ln}: Unbekanntes Event: {v!r}")
 
     def parse_block(self):
@@ -730,47 +736,20 @@ class Parser:
         return stmts
 
     def parse_custom_def(self):
-        """
-        Akzeptiert beide Syntaxformen für eigene Blöcke:
-          define blockName(param1, param2) { … }
-          void   blockName(param1, param2) { … }
-
-        Parameter können optional mit einem Typ annotiert werden:
-          void foo(number x, string y, z) { … }
-              → x = %n (Zahl), y = %s (String), z = %s (Standard)
-
-        Typen:
-          number / int / float  → %n  (Wert wird als Zahl behandelt)
-          string / str          → %s  (Wert wird als String behandelt)
-          boolean / bool        → %b  (sechseckiger Boolean-Slot)
-          kein Typ              → %s  (Standard = String)
-
-        WICHTIG: Wenn ein Parameter in einem Zahlen-Slot landet (z.B. bei
-        move(), wait(), sayFor() als Sekunden), MUSS er als 'number' deklariert
-        werden — sonst wird er als String behandelt und Blöcke wie
-        sayFor("Text", secs) zeigen "0 Sekunden" statt dem echten Wert!
-
-        Falsch:  void foo(secs)         { sayFor("Hi", secs); }
-        Richtig: void foo(number secs)  { sayFor("Hi", secs); }
-        """
         self.consume()   # consume 'define' oder 'void'
         name = self.consume("IDENT")
         self.consume("LPAREN")
-        params      = []   # [(param_name, type_code)]  type_code = "%s"|"%n"|"%b"
+        params      = []
         TYPE_MAP = {
             "number": "%s", "int": "%s", "float": "%s",
             "string": "%s", "str": "%s",
             "boolean": "%b", "bool": "%b",
         }
         while self.peek()[1] != ")":
-            # Typ-Annotation nur erkennen wenn ZWEI Tokens vor , oder ) stehen:
-            # "number x"  → Typ=number, Name=x
-            # "x"         → kein Typ, Name=x
             pk0, pv0, _ = self.peek(0)
             pk1, pv1, _ = self.peek(1)
             if pv0 in TYPE_MAP and pk1 == "IDENT":
-                # Nächstes Token ist Typ, übernächstes ist Parametername
-                self.consume()           # Typ konsumieren
+                self.consume()
                 type_code = TYPE_MAP[pv0]
             else:
                 type_code = "%s"
@@ -1002,11 +981,6 @@ class Parser:
         return {"type": "Forever", "body": self.parse_block()}
 
     def parse_if(self):
-        """
-        Parst if / elseif / else Ketten.
-        elseif wird in verschachtelte if-else-Blöcke übersetzt
-        (das .sb3-Format kennt kein natives elseif).
-        """
         self.consume(value="if"); self.consume("LPAREN")
         cond = self.parse_expr(); self.consume("RPAREN")
         then = self.parse_block()
@@ -1015,12 +989,10 @@ class Parser:
         if nv == "else":
             self.consume()
             if self.peek()[1] == "if":
-                # else if → rekursiv parsen → erzeugt verschachteltes if
                 else_ = [self.parse_if()]
             else:
                 else_ = self.parse_block()
         elif nv == "elseif":
-            # elseif als Kurzform (kein Leerzeichen nötig)
             else_ = [self.parse_elseif()]
         return {"type": "If", "cond": cond, "then": then, "else": else_}
 
@@ -1144,7 +1116,6 @@ class Parser:
             suggestion or f"Syntax: {cmd}({'text' if expected == 1 else 'text, sekunden'});")
 
     def _consume_extra_args(self) -> tuple[list, str | None]:
-        """Konsumiert extra Argumente nach einem Komma. Gibt (extra_nodes, cmt) zurück."""
         extras = []
         while self.peek()[1] == ",":
             self.consume(); extras.append(self.parse_expr())
@@ -1174,8 +1145,6 @@ class Parser:
     def parse_say_for(self, think=False):
         cmd = "thinkFor" if think else "sayFor"
         ln = self.current_line(); self.consume(); self.consume("LPAREN")
-
-        # Zu wenig Argumente: kein Komma nach erstem Arg
         text = self.parse_expr()
         if self.peek()[1] != ",":
             self.consume("RPAREN"); self.expect_semi()
@@ -1183,8 +1152,6 @@ class Parser:
                 f"Syntax: {cmd}(text, sekunden);  – z.B. {cmd}(\"Hallo!\", 3);")
             raise SyntaxError("__collected__")
         self.consume("COMMA"); secs = self.parse_expr()
-
-        # Zu viele Argumente?
         if self.peek()[1] == ",":
             extras, _ = self._consume_extra_args()
             self._check_arg_count(ln, cmd, 2 + len(extras), 2,
@@ -1194,23 +1161,12 @@ class Parser:
         return self._stmt({"type": "ThinkFor" if think else "SayFor", "text": text, "secs": secs}, cmt)
 
     # ── Ausdrücke (Pratt-Parser) ──────────────────────
-    #
-    # Prioritäten (höher = stärker bindend):
-    #   dot-postfix (.contains .length …)  ← nach Arithmetik
-    #   5  * / %
-    #   4  + -
-    #   3  == != < > <= >=
-    #   2  &&
-    #   1  ||
-
     def parse_expr(self, min_prec=0):
         if self.peek()[1] == "!" and min_prec == 0:
             self.consume()
             if self.peek()[1] == "(":
-                # !(expr)  – volle Klammerung
                 self.consume("LPAREN"); operand = self.parse_expr(); self.consume("RPAREN")
             else:
-                # !expr  – arithmetisch + dot (Java-style)
                 operand = self._parse_arithmetic_and_dot()
             left = {"type": "UnaryOp", "op": "!", "operand": operand}
         else:
@@ -1371,17 +1327,12 @@ class BlockGenerator:
         self.variables:       dict = {}
         self.lists:           dict = {}
         self.broadcasts:      dict = {}
-        self.comments:        dict = {}   # cid → Block-Kommentar-Objekt
-        self.custom_procs:    dict = {}   # name → proccode
-        self.custom_arg_ids:  dict = {}   # name → argument IDs shared by definition and calls
-        self.custom_warp:     dict = {}   # name → bool (warp/private)
-        # Aktuell aktive Parameter eines Custom Blocks:
-        # name → argument_reporter Block-ID
-        # Wird in gen_custom_def gesetzt und in gen_expr genutzt.
+        self.comments:        dict = {}
+        self.custom_procs:    dict = {}
+        self.custom_arg_ids:  dict = {}
+        self.custom_warp:     dict = {}
         self.current_params:  dict = {}
-        self._var_scope:      dict = {}   # var_name → "public"|"private"
-        self._comment_x = 0  # X-Offset der nächsten Comment-Notiz (wird nicht wirklich angezeigt,
-        # verknüpfte Comments werden automatisch neben dem Block platziert)
+        self._var_scope:      dict = {}
 
     def _add(self, bid, opcode, parent, nxt,
              inputs=None, fields=None, top=False, x=0, y=0, mutation=None):
@@ -1400,21 +1351,19 @@ class BlockGenerator:
             blk = self.blocks.get(cur, {})
             if blk.get("topLevel"):
                 bx = blk.get("x", 0) + 300
-                by = blk.get("y", 0) + depth * 60 -40 #+40 = etwas tiefer
+                by = blk.get("y", 0) + depth * 60 - 40
                 break
             parent = blk.get("parent")
             if not parent:
                 break
             cur = parent
             depth += 1
-
         cid = new_id()
         self.comments[cid] = {
             "blockId": block_id,
-            "x": bx,
-            "y": by,
-            "width": max(350, len(text) * 12),   # breiter → größere Darstellung
-            "height": 100,                        # höher → Text nicht gequetscht
+            "x": bx, "y": by,
+            "width": max(350, len(text) * 12),
+            "height": 100,
             "minimized": False,
             "text": text,
         }
@@ -1426,17 +1375,9 @@ class BlockGenerator:
             v = node["value"]
             return [4, str(int(v) if isinstance(v, float) and v.is_integer() else v)]
         if node["type"] == "Str":  return [10, node["value"]]
-        # Es gibt keinen primitiven Boolean-Shadow wie [10, "true"].
-        # true/false werden deshalb als echte Boolean-Reporter erzeugt.
         return None
 
     def _input(self, node, parent_id, slot=1):
-        """Erzeugt einen Input-Slot für das .sb3-Format.
-
-        Primitive Literale behalten den Slot-Typ des Aufrufers (meist 1).
-        Ein generierter Reporter-Block wird mit Input-Typ 2 verbunden:
-        [2, blockId].  [3, null, blockId] ist kein gültiger Input-Slot.
-        """
         iv = self._iv(node)
         if iv:
             return [slot, iv]
@@ -1463,12 +1404,6 @@ class BlockGenerator:
         return self.broadcasts[n]
 
     def _num_input(self, node, parent_id):
-        """Input für numerische Slots im .sb3-Format.
-
-        Numerische/Text-Parameter eigener Blöcke verwenden %s und werden als
-        argument_reporter_string_number dargestellt. Der Reporter wird direkt
-        in den numerischen Input eingehängt; kein operator_add-Wrapper nötig.
-        """
         return self._input(node, parent_id)
 
     def _menu_shadow(self, opcode, field_name, value, parent_id):
@@ -1478,38 +1413,24 @@ class BlockGenerator:
                             "shadow": True, "topLevel": False}
         return mid
 
-    # Terminierende Statement-Typen: haben kein next im .sb3-Format
     _TERMINATORS = {"Forever", "Stop"}
 
     def _gen_seq(self, stmts, parent_id):
-        """Erzeugt eine Sequenz von Blöcken.
-
-        Terminierende Blöcke (Forever, Stop) dürfen kein 'next' haben.
-        Blöcke die danach stehen werden als neue Teilsequenz an denselben
-        parent gehängt (damit sie im Script-Stack sichtbar bleiben).
-        Gibt die ID des ersten Blocks zurück (oder None bei leerer Liste).
-        """
         if not stmts: return None
-
-        # Sequenz an Terminatoren aufsplitten
         first_id = None
         seg_start = 0
         while seg_start < len(stmts):
-            # Ende dieses Segments: erster Terminator oder Ende der Liste
             seg_end = seg_start
             while seg_end < len(stmts) and stmts[seg_end]["type"] not in self._TERMINATORS:
                 seg_end += 1
-            # Terminatorblock selbst noch einschließen falls vorhanden
             if seg_end < len(stmts):
-                seg_end += 1  # inklusive des Terminators
+                seg_end += 1
             seg = stmts[seg_start:seg_end]
             if not seg:
                 break
-
             ids = [new_id() for _ in seg]
             for i, stmt in enumerate(seg):
                 par = parent_id if i == 0 else ids[i-1]
-                # Terminierender Block bekommt next=None, alle anderen den Folger
                 is_term = stmt["type"] in self._TERMINATORS
                 nxt = None if is_term else (ids[i+1] if i+1 < len(ids) else None)
                 real = self.gen_stmt(stmt, par, nxt)
@@ -1524,16 +1445,12 @@ class BlockGenerator:
                         for inp in sb.get("inputs", {}).values():
                             if isinstance(inp, list) and len(inp) > 1 and inp[1] == real:
                                 inp[1] = ids[i]
-                    # Auch Comments aktualisieren die auf die alte ID zeigen
                     for c in self.comments.values():
                         if c.get("blockId") == real:
                             c["blockId"] = ids[i]
-
             if first_id is None:
                 first_id = ids[0]
-
-            seg_start = seg_end  # nächstes Segment beginnt nach dem Terminator
-
+            seg_start = seg_end
         return first_id
 
     def gen_hat(self, event, x=0, y=0):
@@ -1552,20 +1469,14 @@ class BlockGenerator:
             bid2 = self._broadcast_id(event["message"])
             self._add(bid, "event_whenbroadcastreceived", None, None,
                       fields={"BROADCAST_OPTION": [event["message"], bid2]}, top=True, x=x, y=y)
+        elif t == "EventCloneStarted":
+            self._add(bid, "control_start_as_clone", None, None, top=True, x=x, y=y)
         elif t == "CustomDefHat":
             self._add(bid, "procedures_definition", None, None,
                       inputs={"custom_block": [1, event["proto_id"]]}, top=True, x=x, y=y)
         return bid
 
-    # ── animate() expandieren ─────────────────────────
     def _expand_animate(self, node, parent_id, next_id):
-        """
-        animate("kos1","kos2","kos3", 0.1)
-        wird zu:
-          switchCostume("kos1"); wait(0.1);
-          switchCostume("kos2"); wait(0.1);
-          switchCostume("kos3"); wait(0.1);
-        """
         stmts = []
         for cname in node["costumes"]:
             stmts.append({"type": "SwitchCostume", "value": cname})
@@ -1582,40 +1493,29 @@ class BlockGenerator:
     def _gen_stmt_inner(self, node, parent_id, next_id):
         t = node["type"]; bid = new_id()
 
-        # Animate → expandieren
         if t == "Animate":
             first = self._expand_animate(node, parent_id, next_id)
-            # Letzten Block mit next_id verbinden
             if first:
                 cur = first
                 while self.blocks[cur]["next"]:
                     cur = self.blocks[cur]["next"]
                 self.blocks[cur]["next"] = next_id
-                if next_id: self.blocks.get(next_id, {})  # next parent wird später gesetzt
             return first or bid
 
-        # Variablen
         if t == "VarDecl":
             inp      = self._input(node["value"], bid) if node["value"] else [1,[10,""]]
             var_name = node["name"]
-            scope    = node.get("scope",   "public")   # "public" | "private"
-            display  = node.get("display", "shown")    # "shown"  | "hidden"
-
-            # Scope wird in build_project ausgewertet (public→Stage, private→Sprite)
-            # Hier nur: set + optional hide
-            self._var_scope[var_name] = scope   # für build_project merken
-
+            scope    = node.get("scope",   "public")
+            display  = node.get("display", "shown")
+            self._var_scope[var_name] = scope
             self._add(bid, "data_setvariableto", parent_id, next_id,
                 inputs={"VALUE": inp},
                 fields={"VARIABLE": [var_name, self._var_id(var_name)]})
-
-            # hidden → direkt danach einen hideVariable-Block einfügen
             if display == "hidden":
                 hide_id = new_id()
                 self._add(hide_id, "data_hidevariable", bid, next_id,
                     fields={"VARIABLE": [var_name, self._var_id(var_name)]})
                 self.blocks[bid]["next"] = hide_id
-
             return bid
         if t == "VarSet":
             self._add(bid, "data_setvariableto", parent_id, next_id,
@@ -1641,8 +1541,6 @@ class BlockGenerator:
         if t == "HideVar":
             self._add(bid, "data_hidevariable", parent_id, next_id,
                 fields={"VARIABLE": [node["value"], self._var_id(node["value"])]}); return bid
-
-        # Listen
         if t == "ListAdd":
             self._add(bid, "data_addtolist", parent_id, next_id,
                 inputs={"ITEM": self._input(node["item"], bid)},
@@ -1665,8 +1563,6 @@ class BlockGenerator:
         if t == "HideList":
             self._add(bid, "data_hidelist", parent_id, next_id,
                 fields={"LIST": [node["value"], self._list_id(node["value"])]}); return bid
-
-        # Control
         if t == "Repeat":
             inner = self._gen_seq(node["body"], bid)
             self._add(bid, "control_repeat", parent_id, next_id,
@@ -1674,14 +1570,8 @@ class BlockGenerator:
                         "SUBSTACK": [2, inner] if inner else {}}); return bid
         if t == "Forever":
             inner = self._gen_seq(node["body"], bid)
-            # Forever ist ein terminierender Block – next muss None sein.
-            # Blöcke nach forever() landen als eigenständige Sequenz im selben Script.
             self._add(bid, "control_forever", parent_id, None,
                 inputs={"SUBSTACK": [2, inner] if inner else {}})
-            # Falls Blöcke nach dem forever stehen, müssen sie trotzdem erzeugt werden –
-            # das macht _gen_seq bereits (next_id wird dem forever selbst übergeben, aber
-            # wir haben es auf None gesetzt). Der Aufrufer (_gen_seq) setzt next_id für
-            # den VORHERIGEN Block auf bid, was korrekt ist.
             return bid
         if t == "If":
             cond = self._bool_input(node["cond"], bid)
@@ -1716,8 +1606,6 @@ class BlockGenerator:
                 inputs={"CLONE_OPTION": [1, mid]}); return bid
         if t == "DeleteClone":
             self._add(bid, "control_delete_this_clone", parent_id, next_id); return bid
-
-        # Motion
         if t == "Move":
             self._add(bid,"motion_movesteps",parent_id,next_id,inputs={"STEPS":self._num_input(node["value"],bid)}); return bid
         if t == "TurnLeft":
@@ -1757,8 +1645,6 @@ class BlockGenerator:
         if t == "SetRotationStyle":
             self._add(bid,"motion_setrotationstyle",parent_id,next_id,
                 fields={"STYLE":[node["value"],None]}); return bid
-
-        # Looks
         if t == "Say":
             self._add(bid,"looks_say",parent_id,next_id,inputs={"MESSAGE":self._input(node["text"],bid)}); return bid
         if t == "SayFor":
@@ -1807,8 +1693,6 @@ class BlockGenerator:
                 fields={"EFFECT":[node["effect"].upper(),None]}); return bid
         if t == "ClearEffects":
             self._add(bid,"looks_cleargraphiceffects",parent_id,next_id); return bid
-
-        # Sound
         if t == "PlaySound":
             mid = self._menu_shadow("sound_sounds_menu","SOUND_MENU",node["value"],bid)
             self._add(bid,"sound_play",parent_id,next_id,inputs={"SOUND_MENU":[1,mid]}); return bid
@@ -1821,8 +1705,6 @@ class BlockGenerator:
             self._add(bid,"sound_setvolumeto",parent_id,next_id,inputs={"VOLUME":self._num_input(node["value"],bid)}); return bid
         if t == "ChangeVolume":
             self._add(bid,"sound_changevolumeby",parent_id,next_id,inputs={"CHANGE":self._num_input(node["value"],bid)}); return bid
-
-        # Sensing
         if t == "AskAndWait":
             self._add(bid,"sensing_askandwait",parent_id,next_id,
                 inputs={"QUESTION":[1,[10,node["value"]]]}); return bid
@@ -1831,8 +1713,6 @@ class BlockGenerator:
                 fields={"DRAG_MODE":[node["value"],None]}); return bid
         if t == "ResetTimer":
             self._add(bid,"sensing_resettimer",parent_id,next_id); return bid
-
-        # Pen
         if t == "PenDown":
             self._add(bid,"pen_penDown",parent_id,next_id); return bid
         if t == "PenUp":
@@ -1853,8 +1733,6 @@ class BlockGenerator:
             self._add(bid,"pen_stamp",parent_id,next_id); return bid
         if t == "ErasePen":
             self._add(bid,"pen_clear",parent_id,next_id); return bid
-
-        # Broadcast
         if t == "Broadcast":
             mid = self._broadcast_id(node["value"])
             self._add(bid,"event_broadcast",parent_id,next_id,
@@ -1863,14 +1741,11 @@ class BlockGenerator:
             mid = self._broadcast_id(node["value"])
             self._add(bid,"event_broadcastandwait",parent_id,next_id,
                 inputs={"BROADCAST_INPUT":[1,[11,node["value"],mid]]}); return bid
-
-        # Custom blocks
         if t == "CustomCall":
             proccode = self.custom_procs.get(node["name"],
                            node["name"]+" "+" ".join(["%s"]*len(node["args"])))
             arg_ids = self.custom_arg_ids.get(node["name"], [])
             if len(arg_ids) != len(node["args"]):
-                # Fallback for unresolved/externally declared custom blocks.
                 arg_ids = [new_id() for _ in node["args"]]
             inputs = {aid: self._input(arg, bid) for aid, arg in zip(arg_ids, node["args"])}
             mutation = {"tagName":"mutation","children":[],"proccode":proccode,
@@ -1891,15 +1766,12 @@ class BlockGenerator:
             self._add(bid,"text",parent_id,None,fields={"TEXT":[node["value"],None]})
             self.blocks[bid]["shadow"] = True; return bid
         if t == "Bool":
-            # Produce an actual Boolean reporter. An empty operator_not input
-            # (the old false implementation) is not a valid false literal.
             a, b = ("1", "1") if node["value"] else ("1", "0")
             self._add(bid, "operator_equals", parent_id, None,
                 inputs={"OPERAND1": [1, [10, a]], "OPERAND2": [1, [10, b]]})
             return bid
         if t == "Var":
             name = node["name"]
-            # Ist der Name ein Parameter des aktuellen Custom Blocks?
             if name in self.current_params:
                 _, ptype = self.current_params[name]
                 opcode = ("argument_reporter_boolean"
@@ -2000,33 +1872,25 @@ class BlockGenerator:
         raise ValueError(f"Unbekannter Ausdrucks-Typ: {t!r}")
 
     def gen_custom_def(self, cdef, x=0, y=0):
-        # params ist jetzt [(name, type_code)] wobei type_code = "%s"|"%n"|"%b"
-        # Rückwärtskompatibel: falls noch alte Form (nur strings) → als %s behandeln
         raw_params = cdef["params"]
         if raw_params and isinstance(raw_params[0], str):
             params = [(p, "%s") for p in raw_params]
         else:
-            params = raw_params   # neue Form: [(name, type_code)]
+            params = raw_params
 
         param_names = [p[0] for p in params]
         param_types = [p[1] for p in params]
         param_ids   = [new_id() for _ in params]
 
-        # proccode: "blockName %n %s %b" je nach Typ
         proccode = cdef["name"] + "".join(f" {tc}" for tc in param_types)
         warp     = str(self.custom_warp.get(cdef["name"], False)).lower()
         self.custom_procs[cdef["name"]] = proccode
 
-        # Reporter-Opcode je nach Typ:
-        #   %s / %n → argument_reporter_string_number
-        #   %b      → argument_reporter_boolean
         REPORTER_OPCODE = {
             "%s": "argument_reporter_string_number",
             "%n": "argument_reporter_string_number",
             "%b": "argument_reporter_boolean",
         }
-        # Standardwert je nach Typ:
-        #   %s → ""   %n → "0"   %b → "false"
         DEFAULT_VAL = {"%s": "", "%n": "0", "%b": "false"}
 
         proto_id     = new_id()
@@ -2056,11 +1920,9 @@ class BlockGenerator:
         hat_id = new_id()
         self._add(hat_id, "procedures_definition", None, None,
                   inputs={"custom_block": [1, proto_id]}, top=True, x=x, y=y)
-        # The prototype is structurally nested inside the definition block.
         self.blocks[proto_id]["parent"] = hat_id
         self.custom_arg_ids[cdef["name"]] = list(param_ids)
 
-        # Parameter-Scope für den Body setzen
         old_params = self.current_params
         self.current_params = {
             pname: (pid, ptype)
@@ -2076,7 +1938,6 @@ class BlockGenerator:
         self.blocks = {}; self.variables = {}; self.lists = {}
         self.broadcasts = {}; self.comments = {}; self.custom_procs = {}; self.custom_arg_ids = {}
         self.current_params = {}; self._var_scope = {}
-        # private void / hidden void → warp:true (läuft ohne Screen-Refresh, schneller)
         self.custom_warp = {
             cdef["name"]: cdef.get("warp", False)
             for cdef in target_node.get("customDefs", [])
@@ -2104,17 +1965,8 @@ class BlockGenerator:
 #  4.  project.json Zusammenbau
 # ═══════════════════════════════════════════════════════
 def build_project(ast: dict, asset_mgr: AssetManager) -> dict:
-    """
-    Variablen-Scope:
-      public var  → in Stage gespeichert (global, alle Sprites können lesen/schreiben)
-      private var → im Sprite gespeichert (nur dieser Sprite)
-    Variablen-Anzeige:
-      shown  → Monitor sichtbar (Standard)
-      hidden → Monitor versteckt (hideVariable-Block generiert)
-    """
     gen = BlockGenerator(); targets = []; all_broadcasts = {}
 
-    # Stage
     stage_node = next((t for t in ast["targets"] if t["type"]=="Stage"), None)
     stage_blocks, stage_vars, stage_lists = {}, {}, {}
     if stage_node:
@@ -2140,13 +1992,11 @@ def build_project(ast: dict, asset_mgr: AssetManager) -> dict:
     }
     targets.append(stage_target)
 
-    # Sprites
     for i, snode in enumerate([t for t in ast["targets"] if t["type"]=="Sprite"]):
         print(f"  Sprite '{snode['name']}':")
         blocks, variables, lists, bcast, var_scope, sprite_comments = gen.gen_target(snode)
         all_broadcasts.update(bcast)
 
-        # public var → Stage (global), private var → Sprite (lokal)
         sprite_vars = {}
         for var_name, vid in variables.items():
             scope = var_scope.get(var_name, "public")
@@ -2175,7 +2025,6 @@ def build_project(ast: dict, asset_mgr: AssetManager) -> dict:
 
     targets[0]["broadcasts"] = {bid:name for name,bid in all_broadcasts.items()}
 
-    # Extensions: aus imports + auto-detect pen
     extensions = list(ast.get("extensions", []))
     has_pen = any(any(b.get("opcode","").startswith("pen_")
                       for b in t["blocks"].values()) for t in targets)
@@ -2183,7 +2032,7 @@ def build_project(ast: dict, asset_mgr: AssetManager) -> dict:
         extensions.append("pen")
 
     return {"targets":targets,"monitors":[],"extensions":extensions,
-            "meta":{"semver":"3.0.0","vm":"0.2.0","agent":"scrape-transpiler/4.0"}}
+            "meta":{"semver":"3.0.0","vm":"0.2.0","agent":"scrape-transpiler/5.2"}}
 
 
 def write_sb3(project: dict, asset_mgr: AssetManager, path: str):
@@ -2236,9 +2085,9 @@ class Validator:
     def _stmt(self, node, ctx, cn, sn, sp, target):
         t = node["type"]
         if t == "SwitchCostume" and cn and node["value"] not in cn:
-            self.errors.append(f"{ctx}: switchCostume(\"{node['value']}\") – nicht definiert. Vorhanden: {sorted(cn)}")
+            self.warnings.append(f"{ctx}: switchCostume(\"{node['value']}\") – Kostüm nicht gefunden (wird zur Laufzeit ignoriert). Vorhanden: {sorted(cn)}")
         elif t in ("PlaySound","PlaySoundUntilDone") and sn and node["value"] not in sn:
-            self.errors.append(f"{ctx}: playSound(\"{node['value']}\") – nicht definiert. Vorhanden: {sorted(sn)}")
+            self.warnings.append(f"{ctx}: playSound(\"{node['value']}\") – Sound nicht gefunden (wird zur Laufzeit ignoriert). Vorhanden: {sorted(sn)}")
         elif t in ("SetEffect","ChangeEffect") and node["effect"].lower() not in self.VALID_EFFECTS:
             self.errors.append(f"{ctx}: setEffect(\"{node['effect']}\") – ungültig. Gültig: {sorted(self.VALID_EFFECTS)}")
         elif t == "SetRotationStyle" and node["value"] not in self.VALID_ROTATION:
@@ -2262,34 +2111,12 @@ class Validator:
                 params = raw if raw and not isinstance(raw[0], str) else [(p,"%s") for p in raw]
                 if len(node["args"]) != len(params):
                     self.errors.append(f"{ctx}: {node['name']}() – {len(params)} Arg(e) erwartet, {len(node['args'])} gegeben.")
-        # Warnung wenn ungetypter Parameter (%s) in Zahlen-Slot landet
-        elif t in ("SayFor","ThinkFor"):
-            self._check_param_type(node["secs"], ctx, f"{t.lower()} Sekunden", target)
-        elif t in ("Wait",):
-            self._check_param_type(node["value"], ctx, "wait Sekunden", target)
-        elif t in ("Move","TurnLeft","TurnRight","SetX","SetY","ChangeX","ChangeY",
-                   "SetSize","ChangeSize","SetVolume","ChangeVolume",
-                   "SetPenSize","ChangePenSize","GoForwardLayers","GoBackwardLayers"):
-            self._check_param_type(node["value"], ctx, t, target)
         elif t == "Animate" and cn:
             for cname in node["costumes"]:
                 if cname not in cn:
-                    self.errors.append(f"{ctx}: animate() – Kostüm '{cname}' nicht definiert. Vorhanden: {sorted(cn)}")
+                    self.warnings.append(f"{ctx}: animate() – Kostüm '{cname}' nicht gefunden (wird zur Laufzeit ignoriert). Vorhanden: {sorted(cn)}")
         for sub in ("body","then","else"):
             if node.get(sub): self._stmts(node[sub], ctx, cn, sn, sp, target)
-
-    def _check_param_type(self, expr, ctx, slot_name, target):
-        """
-        Warnt wenn ein ungetypter Parameter (%s) in einem Zahlen-Slot landet.
-        Das führt dazu dass der Wert zur Laufzeit als 0 interpretiert wird.
-        """
-        if not expr or expr.get("type") != "Var":
-            return
-        var_name = expr["name"]
-        # Ist der Name ein Parameter eines Custom Blocks?
-        for cdef in target.get("customDefs", []):
-            raw = cdef["params"]
-            params = raw if raw and not isinstance(raw[0], str) else [(p,"%s") for p in raw]
 
     def _range(self, expr, ctx, name, lo, hi):
         if expr and expr.get("type") == "Num":
@@ -2297,7 +2124,6 @@ class Validator:
             if lo is not None and v < lo: self.warnings.append(f"{ctx}: {name}({v}) unter Minimum ({lo}).")
             if hi is not None and v > hi: self.warnings.append(f"{ctx}: {name}({v}) über Maximum ({hi}).")
 
-    # Fix-Hinweise für häufige Validierungsfehler
     _VALIDATOR_FIXES: dict[str, str] = {
         "switchCostume":    "Kostüm mit addCostume() im selben Sprite definieren.",
         "playSound":        "Sound mit addSound() im selben Sprite definieren.",
@@ -2341,23 +2167,11 @@ class Validator:
 #  6.  APP LAUNCHER  (TurboWarp + Desktop-Player)
 # ═══════════════════════════════════════════════════════
 
-# Beide Apps akzeptieren eine .sb3-Datei als CLI-Argument:
-#   TurboWarp Desktop:  turbowarp-desktop datei.sb3
-#   Desktop-Player:     scratch-desktop datei.sb3
-#
-# Quellen:
-#   TurboWarp: Standard-Electron-Verhalten
-#   Desktop-Player: github.com/scratchfoundation/scratch-desktop
-#                   src/main/index.js Zeile 471–492  (argv._[last] = Dateipfad)
-
 APP_PROFILES = {
-    # ── TurboWarp Desktop ─────────────────────────────
     "turbowarp": {
         "label": "TurboWarp",
         "download": "https://turbowarp.org/desktop",
         "Windows": {
-            # TurboWarp Desktop kann verschiedene .exe-Namen haben je nach Version/Installation
-            # _find_turbowarp_exe() sucht zur Laufzeit den echten Namen
             "candidates": [
                 str(Path.home()/"AppData/Local/Programs/TurboWarp/TurboWarp Desktop.exe"),
                 str(Path.home()/"AppData/Local/Programs/TurboWarp/TurboWarp.exe"),
@@ -2367,7 +2181,6 @@ APP_PROFILES = {
                 r"C:\Program Files\TurboWarp\TurboWarp.exe",
                 r"C:\Program Files (x86)\TurboWarp\TurboWarp Desktop.exe",
             ],
-            # kill wird zur Laufzeit dynamisch ermittelt — siehe _get_turbowarp_pname()
             "kill": "TurboWarp Desktop.exe",
             "launch": lambda exe, f: [exe, f],
         },
@@ -2390,14 +2203,10 @@ APP_PROFILES = {
             "launch": lambda exe, f: [exe, f],
         },
     },
-    # ── Desktop-Player ────────────────────────────────
-    # Der Desktop-Player akzeptiert genau 1 Dateipfad als letztes CLI-Argument.
-    # Quelle: scratchfoundation/scratch-desktop src/main/index.js L478
     "scratch": {
         "label": "Desktop-Player",
         "download": "https://scratch.mit.edu/download",
         "Windows": {
-            # Klassische .exe-Installation
             "candidates": [
                 r"C:\Program Files\Scratch Desktop\Scratch Desktop.exe",
                 r"C:\Program Files (x86)\Scratch Desktop\Scratch Desktop.exe",
@@ -2428,14 +2237,7 @@ APP_PROFILES = {
     },
 }
 
-
-# ═══════════════════════════════════════════════════════
-#  FENSTERPOSITION-VERWALTUNG
-# ═══════════════════════════════════════════════════════
-
-# Speicherpfad für Fensterposition (pro App getrennt)
 _WIN_STATE_FILE = Path.home() / ".scrape_transpiler_winstate.json"
-
 
 def _load_win_states() -> dict:
     try:
@@ -2443,24 +2245,17 @@ def _load_win_states() -> dict:
     except Exception:
         return {}
 
-
 def _save_win_states(states: dict):
     try:
         _WIN_STATE_FILE.write_text(json.dumps(states, indent=2), encoding="utf-8")
     except Exception:
         pass
 
-
 def _get_window_geometry_windows(process_name: str) -> dict | None:
-    """Liest die Geometrie des sichtbaren App-Fensters via Win32."""
     result = _windows_find_window(process_name)
     return result[2] if result else None
 
-
 def _get_window_geometry_macos(app_name: str) -> dict | None:
-    """
-    Liest Fensterposition auf macOS via AppleScript.
-    """
     script = f"""
 tell application "System Events"
     set p to first process whose displayed name contains "{app_name}"
@@ -2470,73 +2265,39 @@ tell application "System Events"
 end tell
 """
     try:
-        result = subprocess.run(
-            ["osascript", "-e", script],
-            capture_output=True, text=True, timeout=6
-        )
+        result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=6)
         line = result.stdout.strip()
-        if not line:
-            return None
+        if not line: return None
         parts = [p.strip() for p in line.split(",")]
-        if len(parts) < 4:
-            return None
+        if len(parts) < 4: return None
         x, y, w, h = int(parts[0]), int(parts[1]), int(parts[2]), int(parts[3])
-        if w < 200 or h < 200:
-            return None
+        if w < 200 or h < 200: return None
         return {"x": x, "y": y, "w": w, "h": h, "maximized": False}
     except Exception:
         return None
 
-
 def _get_window_geometry_linux(process_name: str) -> dict | None:
-    """
-    Liest Fensterposition auf Linux via xdotool (muss installiert sein).
-    """
     try:
-        # Fenster-ID via Prozessname finden
-        find = subprocess.run(
-            ["xdotool", "search", "--name", process_name],
-            capture_output=True, text=True, timeout=4
-        )
+        find = subprocess.run(["xdotool","search","--name",process_name], capture_output=True, text=True, timeout=4)
         wids = find.stdout.strip().split()
         if not wids:
-            # Alternativ: via Prozessklasse suchen
-            find2 = subprocess.run(
-                ["xdotool", "search", "--class", process_name],
-                capture_output=True, text=True, timeout=4
-            )
+            find2 = subprocess.run(["xdotool","search","--class",process_name], capture_output=True, text=True, timeout=4)
             wids = find2.stdout.strip().split()
-        if not wids:
-            return None
+        if not wids: return None
         wid = wids[0]
-        # Geometrie auslesen
-        geo = subprocess.run(
-            ["xdotool", "getwindowgeometry", "--shell", wid],
-            capture_output=True, text=True, timeout=4
-        )
+        geo = subprocess.run(["xdotool","getwindowgeometry","--shell",wid], capture_output=True, text=True, timeout=4)
         vals = {}
         for line in geo.stdout.strip().split("\n"):
             if "=" in line:
-                k, v = line.split("=", 1)
-                vals[k.strip()] = v.strip()
-        x = int(vals.get("X", 0))
-        y = int(vals.get("Y", 0))
-        w = int(vals.get("WIDTH", 0))
-        h = int(vals.get("HEIGHT", 0))
-        if w < 200 or h < 200:
-            return None
+                k, v = line.split("=", 1); vals[k.strip()] = v.strip()
+        x=int(vals.get("X",0)); y=int(vals.get("Y",0)); w=int(vals.get("WIDTH",0)); h=int(vals.get("HEIGHT",0))
+        if w < 200 or h < 200: return None
         return {"x": x, "y": y, "w": w, "h": h, "maximized": False}
     except Exception:
         return None
 
-
 def save_window_state(app: str, process_name: str):
-    """
-    Liest die aktuelle Fenstergeometrie des laufenden Prozesses
-    und speichert sie in der State-Datei.
-    """
-    system = platform.system()
-    geo = None
+    system = platform.system(); geo = None
     if system == "Windows":
         geo = _get_window_geometry_windows(process_name)
     elif system == "Darwin":
@@ -2544,371 +2305,178 @@ def save_window_state(app: str, process_name: str):
         geo = _get_window_geometry_macos(label)
     else:
         geo = _get_window_geometry_linux(process_name)
-
     if geo:
-        states = _load_win_states()
-        states[app] = geo
-        _save_win_states(states)
-        if geo.get("maximized"):
-            pos = "maximiert"
-        else:
-            pos = f"{geo['x']},{geo['y']}  {geo['w']}×{geo['h']}"
+        states = _load_win_states(); states[app] = geo; _save_win_states(states)
+        pos = "maximiert" if geo.get("maximized") else f"{geo['x']},{geo['y']}  {geo['w']}×{geo['h']}"
         print(f"  💾  Fensterposition gespeichert ({pos})")
     else:
         print(f"  ℹ  Fensterposition konnte nicht ausgelesen werden")
 
-
 def restore_window_state(app: str, process_name: str):
-    """
-    Wartet in einem Hintergrund-Thread bis das neue Fenster erscheint
-    und stellt dann exakt Position + Größe wieder her.
-
-    Strategie:
-      1. Warte bis der Prozess läuft UND ein Fenster-Handle hat
-         (Electron braucht je nach System 1-5 Sekunden)
-      2. Warte nochmal kurz bis das Fenster vollständig gerendert ist
-         (sonst überschreibt Electron unsere Größe beim eigenen Init)
-      3. Setze Position+Größe
-      4. Verifiziere — falls das Fenster danach wieder auf Standard
-         zurückspringt (Electron-Bug), nochmal setzen
-    """
     import threading
-
-    states = _load_win_states()
-    geo = states.get(app)
-    if not geo:
-        return
-
+    states = _load_win_states(); geo = states.get(app)
+    if not geo: return
     def _restore():
-        system = platform.system()
-        pname  = process_name.replace(".exe", "")
-        MAX_WAIT = 15       # Sekunden maximal warten
-        POLL     = 0.4      # Prüfintervall
-
-        # ── Schritt 1: Warten bis Prozess+Fenster da ist ──────────
+        system = platform.system(); pname = process_name.replace(".exe","")
+        MAX_WAIT = 15; POLL = 0.4
         print(f"  🔄  Warte auf Fenster von {pname}...")
-        deadline = time.time() + MAX_WAIT
-        hwnd     = None
-
+        deadline = time.time() + MAX_WAIT; hwnd = None
         while time.time() < deadline:
             hwnd = _get_hwnd_windows(pname) if system == "Windows" else True
-            if hwnd:
-                break
+            if hwnd: break
             time.sleep(POLL)
-
         if not hwnd:
-            print(f"  ⚠  Fenster von {pname} nicht gefunden – Position nicht wiederhergestellt")
-            return
-
-        # ── Schritt 2: Warten bis Electron die Seite geladen hat ─────
-        # Electron setzt nach dem Rendern der Seite nochmal seine eigene
-        # Startgröße. Wir müssen DANACH kommen — daher länger warten.
-        # Electron-Apps brauchen auf schnellen Systemen ~2-3s zum Laden.
-       # ── Schritt 2: Warten bis Electron da ist (dynamisch) ─────
-        # Statt starr 3 Sekunden zu warten, prüfen wir max. 2 Sekunden im 0.2s-Takt,
-        # ob das Fenster bereits sichtbar ist.
+            print(f"  ⚠  Fenster von {pname} nicht gefunden – Position nicht wiederhergestellt"); return
         load_deadline = time.time() + 2.0
         while time.time() < load_deadline:
             if system == "Windows":
-                if _get_window_geometry_windows(pname) is not None:
-                    break
+                if _get_window_geometry_windows(pname) is not None: break
             time.sleep(0.05)
-
-        # ── Schritt 3+4: Setzen und verifizieren (bis zu 5 Versuche) ──
-        tol = 12   # Pixel-Toleranz
-        success = False
+        tol = 12; success = False
         for attempt in range(5):
-            if system == "Windows":
-                ok = _apply_geometry_windows(pname, geo)
-            elif system == "Darwin":
-                ok = _apply_geometry_macos(APP_PROFILES[app]["label"], geo)
-            else:
-                ok = _apply_geometry_linux(pname, geo)
-
-            # Warten damit Electron nicht überschreibt
+            if system == "Windows": ok = _apply_geometry_windows(pname, geo)
+            elif system == "Darwin": ok = _apply_geometry_macos(APP_PROFILES[app]["label"], geo)
+            else: ok = _apply_geometry_linux(pname, geo)
             time.sleep(0.8)
-
-            # Verifikation (nur Windows)
             if system == "Windows":
                 actual = _get_window_geometry_windows(pname)
-                if actual is None:
-                    continue
+                if actual is None: continue
                 if geo.get("maximized"):
-                    if actual.get("maximized"):
-                        success = True; break
+                    if actual.get("maximized"): success = True; break
                 else:
-                    dx = abs(actual["x"] - geo["x"])
-                    dy = abs(actual["y"] - geo["y"])
-                    dw = abs(actual["w"] - geo["w"])
-                    dh = abs(actual["h"] - geo["h"])
+                    dx=abs(actual["x"]-geo["x"]); dy=abs(actual["y"]-geo["y"])
+                    dw=abs(actual["w"]-geo["w"]); dh=abs(actual["h"]-geo["h"])
                     print(f"  ↳  Versuch {attempt+1}: ist ({actual['x']},{actual['y']} {actual['w']}×{actual['h']}) soll ({geo['x']},{geo['y']} {geo['w']}×{geo['h']})")
-                    if dx<=tol and dy<=tol and dw<=tol and dh<=tol:
-                        success = True; break
-                    # Noch nicht korrekt → kurz warten und nochmal
+                    if dx<=tol and dy<=tol and dw<=tol and dh<=tol: success = True; break
                     time.sleep(0.5)
             else:
                 success = ok; break
-
         pos = "maximiert" if geo.get("maximized") else f"{geo['x']},{geo['y']} {geo['w']}×{geo['h']}"
-        if success:
-            print(f"  ✓  Fensterposition wiederhergestellt ({pos})")
-        else:
-            print(f"  ⚠  Fenster springt zurück — Electron überschreibt Position")
-
-    t = threading.Thread(target=_restore, daemon=True)
-    t.start()
-
+        if success: print(f"  ✓  Fensterposition wiederhergestellt ({pos})")
+        else: print(f"  ⚠  Fenster springt zurück — Electron überschreibt Position")
+    t = threading.Thread(target=_restore, daemon=True); t.start()
 
 def _run_ps(script: str, timeout: int = 8) -> str:
-    """Führt ein PowerShell-Skript aus und liefert die bereinigte Standardausgabe."""
     try:
         result = subprocess.run(
-            [
-                "powershell.exe", "-NoLogo", "-NoProfile",
-                "-NonInteractive", "-ExecutionPolicy", "Bypass",
-                "-Command", script,
-            ],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=timeout,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-        )
-        if result.returncode != 0 and not result.stdout.strip():
-            return ""
+            ["powershell.exe","-NoLogo","-NoProfile","-NonInteractive","-ExecutionPolicy","Bypass","-Command",script],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        if result.returncode != 0 and not result.stdout.strip(): return ""
         return result.stdout.strip()
     except (OSError, subprocess.TimeoutExpired):
         return ""
 
-
-# ── Windows-spezifische Hilfsfunktionen ───────────────────────────────────────
-# Nutzt ausschließlich ctypes aus der Python-Standardbibliothek. Dadurch hängt
-# die Fensterverwaltung nicht von PowerShell/Add-Type oder externen Libraries ab.
-
 def _windows_process_ids(process_name: str) -> set[int]:
-    """Findet passende laufende Prozess-IDs über tasklist."""
-    import csv
-    import io
-
-    wanted = {
-        Path(process_name).stem.casefold(),
-        Path(process_name).name.casefold(),
-    }
-    # Zusätzliche bekannte Namen, da Electron-App und Hauptprozess je nach
-    # TurboWarp-Version unterschiedlich benannt sein können.
+    import csv, io
+    wanted = {Path(process_name).stem.casefold(), Path(process_name).name.casefold()}
     if any("turbowarp" in name for name in wanted):
-        wanted.update({
-            "turbowarp.exe", "turbowarp",
-            "turbowarp desktop.exe", "turbowarp desktop",
-            "turbowarp-desktop.exe", "turbowarp-desktop",
-            "turbowarpdesktop.exe", "turbowarpdesktop",
-        })
-
+        wanted.update({"turbowarp.exe","turbowarp","turbowarp desktop.exe","turbowarp desktop",
+                       "turbowarp-desktop.exe","turbowarp-desktop","turbowarpdesktop.exe","turbowarpdesktop"})
     try:
-        result = subprocess.run(
-            ["tasklist", "/FO", "CSV", "/NH"],
-            capture_output=True, text=True, encoding="utf-8",
-            errors="replace", timeout=6
-        )
+        result = subprocess.run(["tasklist","/FO","CSV","/NH"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=6)
         ids: set[int] = set()
         for row in csv.reader(io.StringIO(result.stdout)):
             if len(row) >= 2 and row[0].strip().strip('"').casefold() in wanted:
-                try:
-                    ids.add(int(row[1].replace(",", "").strip()))
-                except ValueError:
-                    pass
+                try: ids.add(int(row[1].replace(",","").strip()))
+                except ValueError: pass
         return ids
     except Exception:
         return set()
 
-
 def _windows_find_window(process_name: str):
-    """Gibt (hwnd, user32, rect) für das sichtbare Hauptfenster zurück."""
-    if platform.system() != "Windows":
-        return None
-
+    if platform.system() != "Windows": return None
     import ctypes
     from ctypes import wintypes
-
     user32 = ctypes.WinDLL("user32", use_last_error=True)
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-
     EnumWindowsProc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
-
     user32.EnumWindows.argtypes = [EnumWindowsProc, wintypes.LPARAM]
     user32.EnumWindows.restype = wintypes.BOOL
-    user32.IsWindowVisible.argtypes = [wintypes.HWND]
-    user32.IsWindowVisible.restype = wintypes.BOOL
+    user32.IsWindowVisible.argtypes = [wintypes.HWND]; user32.IsWindowVisible.restype = wintypes.BOOL
     user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
     user32.GetWindowThreadProcessId.restype = wintypes.DWORD
-    user32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
-    user32.GetWindowTextLengthW.restype = ctypes.c_int
-    user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
-    user32.GetWindowTextW.restype = ctypes.c_int
-    user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
-    user32.GetWindowRect.restype = wintypes.BOOL
-    user32.IsZoomed.argtypes = [wintypes.HWND]
-    user32.IsZoomed.restype = wintypes.BOOL
-    user32.IsIconic.argtypes = [wintypes.HWND]
-    user32.IsIconic.restype = wintypes.BOOL
-
+    user32.GetWindowTextLengthW.argtypes = [wintypes.HWND]; user32.GetWindowTextLengthW.restype = ctypes.c_int
+    user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]; user32.GetWindowTextW.restype = ctypes.c_int
+    user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]; user32.GetWindowRect.restype = wintypes.BOOL
+    user32.IsZoomed.argtypes = [wintypes.HWND]; user32.IsZoomed.restype = wintypes.BOOL
+    user32.IsIconic.argtypes = [wintypes.HWND]; user32.IsIconic.restype = wintypes.BOOL
     pids = _windows_process_ids(process_name)
-    if not pids:
-        return None
-
+    if not pids: return None
     found = []
-
     @EnumWindowsProc
     def callback(hwnd, _lparam):
-        if not user32.IsWindowVisible(hwnd):
-            return True
+        if not user32.IsWindowVisible(hwnd): return True
         pid = wintypes.DWORD()
         user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-        if pid.value not in pids:
-            return True
+        if pid.value not in pids: return True
         title_len = user32.GetWindowTextLengthW(hwnd)
         title_buf = ctypes.create_unicode_buffer(max(title_len + 1, 2))
         user32.GetWindowTextW(hwnd, title_buf, len(title_buf))
-        if not title_buf.value.strip():
-            return True
+        if not title_buf.value.strip(): return True
         rect = wintypes.RECT()
-        if not user32.GetWindowRect(hwnd, ctypes.byref(rect)):
-            return True
-        width = rect.right - rect.left
-        height = rect.bottom - rect.top
-        if width < 200 or height < 200 or user32.IsIconic(hwnd):
-            return True
-        # Vorzugsweise das größte passende sichtbare Fenster nehmen, damit
-        # kleine Electron-Hilfsfenster nicht versehentlich ausgewählt werden.
-        found.append((
-            width * height, hwnd,
-            {
-                "x": int(rect.left), "y": int(rect.top),
-                "w": int(width), "h": int(height),
-                "maximized": bool(user32.IsZoomed(hwnd)),
-            },
-            user32,
-        ))
+        if not user32.GetWindowRect(hwnd, ctypes.byref(rect)): return True
+        width = rect.right - rect.left; height = rect.bottom - rect.top
+        if width < 200 or height < 200 or user32.IsIconic(hwnd): return True
+        found.append((width*height, hwnd, {"x":int(rect.left),"y":int(rect.top),"w":int(width),"h":int(height),"maximized":bool(user32.IsZoomed(hwnd))}, user32))
         return True
-
     user32.EnumWindows(callback, 0)
-    if not found:
-        return None
+    if not found: return None
     found.sort(key=lambda item: item[0], reverse=True)
     _, hwnd, geo, user32 = found[0]
     return hwnd, user32, geo
 
-
-def _get_window_geometry_windows(process_name: str) -> dict | None:
-    result = _windows_find_window(process_name)
-    return result[2] if result else None
-
-
 def _get_hwnd_windows(process_name: str) -> bool:
     return _windows_find_window(process_name) is not None
 
-
 def _apply_geometry_windows(process_name: str, geo: dict) -> bool:
-    """Setzt die Fensterposition/-größe direkt über die Windows-API."""
     result = _windows_find_window(process_name)
-    if not result:
-        return False
-
+    if not result: return False
     import ctypes
     from ctypes import wintypes
-
     hwnd, user32, _current_geo = result
-    user32.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
-    user32.ShowWindow.restype = wintypes.BOOL
-    user32.SetWindowPos.argtypes = [
-        wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int,
-        ctypes.c_int, ctypes.c_int, ctypes.c_uint
-    ]
+    user32.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]; user32.ShowWindow.restype = wintypes.BOOL
+    user32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_uint]
     user32.SetWindowPos.restype = wintypes.BOOL
-
-    SW_RESTORE = 9
-    SW_MAXIMIZE = 3
-    HWND_TOP = 0
-    SWP_NOACTIVATE = 0x0010
-    SWP_NOZORDER = 0x0004
-    SWP_SHOWWINDOW = 0x0040
-
+    SW_RESTORE=9; SW_MAXIMIZE=3; HWND_TOP=0; SWP_NOACTIVATE=0x0010; SWP_NOZORDER=0x0004; SWP_SHOWWINDOW=0x0040
     if geo.get("maximized"):
-        user32.ShowWindow(hwnd, SW_RESTORE)
-        time.sleep(0.15)
-        user32.ShowWindow(hwnd, SW_MAXIMIZE)
-        return True
-
-    user32.ShowWindow(hwnd, SW_RESTORE)
-    time.sleep(0.15)
+        user32.ShowWindow(hwnd, SW_RESTORE); time.sleep(0.15); user32.ShowWindow(hwnd, SW_MAXIMIZE); return True
+    user32.ShowWindow(hwnd, SW_RESTORE); time.sleep(0.15)
     flags = SWP_NOACTIVATE | SWP_NOZORDER | SWP_SHOWWINDOW
-    ok = user32.SetWindowPos(
-        hwnd, wintypes.HWND(HWND_TOP),
-        int(geo["x"]), int(geo["y"]), int(geo["w"]), int(geo["h"]),
-        flags
-    )
+    ok = user32.SetWindowPos(hwnd, wintypes.HWND(HWND_TOP), int(geo["x"]), int(geo["y"]), int(geo["w"]), int(geo["h"]), flags)
     time.sleep(0.15)
     actual = _get_window_geometry_windows(process_name)
-    if not actual:
-        return bool(ok)
+    if not actual: return bool(ok)
     tol = 12
-    return bool(ok) and all(
-        abs(actual[k] - geo[k]) <= tol for k in ("x", "y", "w", "h")
-    )
+    return bool(ok) and all(abs(actual[k]-geo[k])<=tol for k in ("x","y","w","h"))
 
 def _apply_geometry_macos(app_name: str, geo: dict) -> bool:
     x, y, w, h = geo["x"], geo["y"], geo["w"], geo["h"]
-    script = f"""
-tell application "System Events"
-    try
-        set proc to first process whose displayed name contains "{app_name}"
-        set win to first window of proc
-        set bounds of win to {{{x}, {y}, {x+w}, {y+h}}}
-        return "ok"
-    on error
-        return "err"
-    end try
-end tell
-"""
+    script = f'tell application "System Events"\ntry\nset proc to first process whose displayed name contains "{app_name}"\nset win to first window of proc\nset bounds of win to {{{x}, {y}, {x+w}, {y+h}}}\nreturn "ok"\non error\nreturn "err"\nend try\nend tell'
     try:
         r = subprocess.run(["osascript","-e",script], capture_output=True, text=True, timeout=8)
         return "ok" in r.stdout
     except Exception:
         return False
 
-
 def _apply_geometry_linux(pname: str, geo: dict) -> bool:
     x, y, w, h = geo["x"], geo["y"], geo["w"], geo["h"]
     try:
-        find = subprocess.run(["xdotool","search","--name",pname],
-                              capture_output=True, text=True, timeout=4)
+        find = subprocess.run(["xdotool","search","--name",pname], capture_output=True, text=True, timeout=4)
         wids = find.stdout.strip().split()
         if not wids:
-            find2 = subprocess.run(["xdotool","search","--class",pname],
-                                   capture_output=True, text=True, timeout=4)
+            find2 = subprocess.run(["xdotool","search","--class",pname], capture_output=True, text=True, timeout=4)
             wids = find2.stdout.strip().split()
-        if not wids:
-            return False
+        if not wids: return False
         wid = wids[0]
-        subprocess.run(["xdotool","windowmove",wid,str(x),str(y)],
-                       capture_output=True, timeout=4)
-        subprocess.run(["xdotool","windowsize",wid,str(w),str(h)],
-                       capture_output=True, timeout=4)
+        subprocess.run(["xdotool","windowmove",wid,str(x),str(y)], capture_output=True, timeout=4)
+        subprocess.run(["xdotool","windowsize",wid,str(w),str(h)], capture_output=True, timeout=4)
         return True
     except Exception:
         return False
 
-
 def _get_running_pname(candidates: list[str]) -> str | None:
-    """
-    Findet den echten Prozessnamen eines laufenden Programms aus einer Liste
-    von Kandidaten. Gibt den ersten laufenden zurück, oder None.
-    Funktioniert auf Windows via PowerShell Get-Process.
-    """
-    if platform.system() != "Windows":
-        return None
-    # Alle Kandidaten ohne .exe-Extension für Get-Process
+    if platform.system() != "Windows": return None
     names = [c.replace(".exe","") for c in candidates]
     name_list = ", ".join(f'"{n}"' for n in names)
     script = (
@@ -2922,175 +2490,81 @@ def _get_running_pname(candidates: list[str]) -> str | None:
     result = _run_ps(script, timeout=5)
     return result if result else None
 
-
 def _find_turbowarp_pname() -> str:
-    """
-    Findet den echten Prozessnamen von TurboWarp Desktop.
-    Probiert verschiedene bekannte Namen und gibt den laufenden zurück.
-    Fallback: 'TurboWarp Desktop.exe'
-    """
-    candidates = [
-        "TurboWarp Desktop",
-        "TurboWarp",
-        "turbowarp-desktop",
-        "turbowarpdesktop",
-    ]
+    candidates = ["TurboWarp Desktop","TurboWarp","turbowarp-desktop","turbowarpdesktop"]
     found = _get_running_pname([f"{c}.exe" for c in candidates])
     return found or "TurboWarp Desktop.exe"
 
-
 def _find_scratch_store_aumid() -> str | None:
-    """
-    Sucht die AUMID der Microsoft-Store-Version des Desktop-Players via PowerShell.
-    """
-    family = _run_ps(
-        "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\n"
-        "Get-AppxPackage *Scratch* | Select-Object -ExpandProperty PackageFamilyName",
-        timeout=8
-    )
-    if family:
-        return f"{family}!App"
-    return None
-
+    family = _run_ps("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\nGet-AppxPackage *Scratch* | Select-Object -ExpandProperty PackageFamilyName", timeout=8)
+    return f"{family}!App" if family else None
 
 def _find_scratch_store_exe() -> str | None:
-    """
-    Sucht die .exe der Store-Version des Desktop-Players im WindowsApps-Ordner.
-    Dieser Ordner ist normalerweise nur mit Admin-Rechten lesbar —
-    daher nur als Fallback, Store-Start via shell: ist zuverlässiger.
-    """
     import glob
-    patterns = [
-        r"C:\Program Files\WindowsApps\ScratchFoundation.Scratch3_*\Scratch Desktop.exe",
-        r"C:\Program Files\WindowsApps\ScratchFoundation.Scratch3_*\Scratch*.exe",
-    ]
-    for pat in patterns:
+    for pat in [r"C:\Program Files\WindowsApps\ScratchFoundation.Scratch3_*\Scratch Desktop.exe",
+                r"C:\Program Files\WindowsApps\ScratchFoundation.Scratch3_*\Scratch*.exe"]:
         hits = glob.glob(pat)
-        if hits:
-            return hits[0]
+        if hits: return hits[0]
     return None
 
-
 def launch_app(sb3_path: str, app: str, replace: bool):
-    """
-    Startet TurboWarp Desktop oder den Desktop-Player mit der angegebenen .sb3-Datei.
-
-    Für den Desktop-Player auf Windows werden drei Wege versucht (in dieser Reihenfolge):
-      1. Klassische .exe-Installation (Program Files / AppData)
-      2. Microsoft Store-Version via PowerShell Start-Process shell:AppsFolder
-      3. Direkte .exe im WindowsApps-Ordner (benötigt ggf. Admin)
-
-    app:     "turbowarp" | "scratch"
-    replace: True  → laufende Instanzen beenden, dann neu starten
-             False → neue Instanz zusätzlich starten
-    """
     sb3_abs = str(Path(sb3_path).resolve())
     system  = platform.system()
     sys_key = {"Windows":"Windows","Darwin":"Darwin"}.get(system, "Linux")
-
     profile     = APP_PROFILES[app]
     sys_profile = profile[sys_key]
     label       = profile["label"]
-
-    # ── Fensterposition speichern, dann beenden ───────
     if replace:
-        # Echten laufenden Prozessnamen ermitteln (wichtig für TurboWarp!)
         if system == "Windows" and app == "turbowarp":
-            kill = _find_turbowarp_pname()
-            print(f"  🔍  Prozessname: {kill}")
+            kill = _find_turbowarp_pname(); print(f"  🔍  Prozessname: {kill}")
         else:
             kill = sys_profile["kill"]
-
-        # Position auslesen solange Fenster noch offen ist
         save_window_state(app, kill)
         print(f"  ⏹  Beende laufende {label}-Instanzen...")
         if system == "Windows":
-            # Alle TurboWarp-Varianten beenden
-            for pname in [
-                "TurboWarp Desktop.exe", "TurboWarp.exe",
-                "turbowarp-desktop.exe", "turbowarpdesktop.exe",
-            ]:
-                subprocess.run(["taskkill", "/F", "/IM", pname],
-                               capture_output=True, timeout=8)
+            for pname in ["TurboWarp Desktop.exe","TurboWarp.exe","turbowarp-desktop.exe","turbowarpdesktop.exe"]:
+                subprocess.run(["taskkill","/F","/IM",pname], capture_output=True, timeout=8)
         else:
-            subprocess.run(["pkill", "-f", kill], capture_output=True)
+            subprocess.run(["pkill","-f",kill], capture_output=True)
         time.sleep(0.8)
-
     mode = "Ersetze" if replace else "Starte neue"
-
-    # ── Windows: klassische .exe suchen ──────────────
     if system == "Windows" and app == "scratch":
         exe = next((c for c in sys_profile["candidates"] if Path(c).exists()), None)
-
         if exe:
-            # Klassische Installation gefunden — direkt starten
             print(f"  ▶  {mode} {label}-Instanz: {Path(sb3_abs).name}")
             print(f"     (klassische Installation: {exe})")
             subprocess.Popen([exe, sb3_abs])
-            if replace:
-                restore_window_state(app, Path(exe).name)
+            if replace: restore_window_state(app, Path(exe).name)
             return
-
-        # ── Microsoft Store-Version ───────────────────
-        # Store-Apps können KEINEN Dateipfad direkt als Argument empfangen,
-        # weil Windows die App in einer AppContainer-Sandbox startet.
-        # Lösung: Datei zuerst öffnen, dann die App mit dem Protokoll-Handler starten.
-        # Oder: via PowerShell Start-Process mit shell:AppsFolder
-        print(f"  ℹ  Klassische Installation nicht gefunden.")
-        print(f"     Suche Microsoft Store-Version...")
-
+        print(f"  ℹ  Klassische Installation nicht gefunden.\n     Suche Microsoft Store-Version...")
         aumid = _find_scratch_store_aumid()
         if aumid:
             print(f"  ✓  Store-Version gefunden: {aumid}")
             print(f"  ▶  {mode} {label}-Instanz: {Path(sb3_abs).name}")
-            print()
-            print("  ⚠  HINWEIS: Die Microsoft Store-Version des Desktop-Players kann")
-            print("     .sb3-Dateien nicht direkt per CLI öffnen (Sandbox-Einschränkung).")
-            print("     Die App wird geöffnet — lade die Datei manuell über")
-            print("     Datei → Vom Computer laden:")
-            print(f"     {sb3_abs}")
-            print()
-            # App starten (ohne Dateiargument — Store-Sandbox erlaubt das nicht)
+            print(f"\n  ⚠  HINWEIS: Die Microsoft Store-Version des Desktop-Players kann\n     .sb3-Dateien nicht direkt per CLI öffnen (Sandbox-Einschränkung).\n     Die App wird geöffnet — lade die Datei manuell über\n     Datei → Vom Computer laden:\n     {sb3_abs}\n")
             _run_ps(f'Start-Process "shell:AppsFolder\\{aumid}"', timeout=5)
-            # Dateipfad in die Zwischenablage kopieren
             result = _run_ps(f'Set-Clipboard -Value "{sb3_abs}"; Write-Output "ok"', timeout=3)
-            if result == "ok":
-                print("  📋  Dateipfad wurde in die Zwischenablage kopiert.")
+            if result == "ok": print("  📋  Dateipfad wurde in die Zwischenablage kopiert.")
             return
-
-        # ── Letzter Versuch: WindowsApps-Ordner ──────
         store_exe = _find_scratch_store_exe()
         if store_exe:
             print(f"  ✓  Store-Exe gefunden: {store_exe}")
             print(f"  ▶  {mode} {label}: {Path(sb3_abs).name}")
-            try:
-                subprocess.Popen([store_exe, sb3_abs])
+            try: subprocess.Popen([store_exe, sb3_abs])
             except PermissionError:
-                print("  ✗  Zugriff verweigert (WindowsApps benötigt Admin-Rechte).")
-                print("     Starte ohne Dateiargument...")
+                print("  ✗  Zugriff verweigert (WindowsApps benötigt Admin-Rechte).\n     Starte ohne Dateiargument...")
                 subprocess.Popen([store_exe])
             return
-
-        # ── Nichts gefunden ───────────────────────────
-        print(f"  ✗  Desktop-Player nicht gefunden.")
-        print(f"     Store-Version:  apps.microsoft.com/detail/9pfgj25j6x3")
-        print(f"     Klassische Version:          {profile['download']}")
-        print(f"     Datei manuell öffnen: {sb3_abs}")
+        print(f"  ✗  Desktop-Player nicht gefunden.\n     Store-Version:  apps.microsoft.com/detail/9pfgj25j6x3\n     Klassische Version:          {profile['download']}\n     Datei manuell öffnen: {sb3_abs}")
         return
-
-    # ── Alle anderen Systeme / TurboWarp ──────────────
     exe = next((c for c in sys_profile["candidates"] if Path(c).exists()), None)
     if exe is None:
-        print(f"  ⚠  {label} nicht gefunden.")
-        print(f"     Download: {profile['download']}")
-        print(f"     Datei manuell öffnen: {sb3_abs}")
+        print(f"  ⚠  {label} nicht gefunden.\n     Download: {profile['download']}\n     Datei manuell öffnen: {sb3_abs}")
         return
-
     print(f"  ▶  {mode} {label}-Instanz: {Path(sb3_abs).name}")
     cmd = sys_profile["launch"](exe, sb3_abs)
     subprocess.Popen(cmd)
     if replace:
-        # Für restore: Prozessname aus dem exe-Pfad ableiten
         exe_name = Path(exe).name
         restore_window_state(app, exe_name)
 
@@ -3100,10 +2574,6 @@ def launch_app(sb3_path: str, app: str, replace: bool):
 # ═══════════════════════════════════════════════════════
 def compile_once(source: str, base_dir: Path, outfile: str,
                  asset_mgr: AssetManager, verbose=True) -> bool:
-    """
-    Führt eine vollständige Kompilierung durch.
-    Gibt True zurück bei Erfolg, False bei Fehler.
-    """
     try:
         if verbose: print("── [1] Tokenisierung & Parsing ────────────")
         tokens = tokenize(source)
@@ -3117,13 +2587,10 @@ def compile_once(source: str, base_dir: Path, outfile: str,
     except SyntaxError as e:
         msg = str(e)
         if msg == "__all_reported__":
-            # Alle Fehler wurden bereits vom ErrorCollector ausgegeben
             print("  ✗  Parsing abgebrochen – alle Fehler oben beheben.")
         elif msg == "__collected__":
-            # Sollte nicht vorkommen (parse_program fängt das ab), Fallback:
             print("\n  ✗  Syntaxfehler beim Parsen.")
         else:
-            # Tokenizer-Fehler (MISMATCH) oder unerwartete Ausnahme
             print(f"\n  ✗  Syntaxfehler: {msg}")
         return False
 
@@ -3153,50 +2620,32 @@ def compile_once(source: str, base_dir: Path, outfile: str,
 #  8.  WATCH-MODUS
 # ═══════════════════════════════════════════════════════
 def watch_mode(src_path: Path, outfile: str, app_mode: tuple | None):
-    """
-    Beobachtet die Quelldatei und kompiliert bei jeder Änderung neu.
-    app_mode: None | ("turbowarp"|"desktop-player", "new"|"replace")
-    """
     print(f"👁  Watch-Modus aktiv – beobachte: {src_path}")
     print("   Ctrl+C zum Beenden\n")
-
-    last_mtime = None
-    first_run  = True
-
+    last_mtime = None; first_run = True
     while True:
         try:
             mtime = src_path.stat().st_mtime
         except FileNotFoundError:
-            print(f"  ⚠  Datei nicht gefunden: {src_path}")
-            time.sleep(1); continue
-
+            print(f"  ⚠  Datei nicht gefunden: {src_path}"); time.sleep(1); continue
         if mtime != last_mtime:
             last_mtime = mtime
             if not first_run:
-                print(f"\n{'─'*45}")
-                print(f"🔄  Änderung erkannt – {time.strftime('%H:%M:%S')}")
+                print(f"\n{'─'*45}\n🔄  Änderung erkannt – {time.strftime('%H:%M:%S')}")
             first_run = False
-
             source    = src_path.read_text(encoding="utf-8")
             base_dir  = src_path.parent
             asset_mgr = AssetManager(base_dir)
-
             try:
                 success = compile_once(source, base_dir, outfile, asset_mgr)
             except Exception as exc:
-                # Watch bleibt aktiv; Fehler werden angezeigt und beim nächsten
-                # Datei-Update erneut versucht.
-                print(f"  ✗  Unerwarteter Fehler beim Kompilieren: {exc}")
-                success = False
-
+                print(f"  ✗  Unerwarteter Fehler beim Kompilieren: {exc}"); success = False
             if success and app_mode:
                 app, mode = app_mode
                 label = APP_PROFILES[app]["label"]
                 print(f"── [5] {label} ───────────────────────────")
                 launch_app(outfile, app=app, replace=(mode=="replace"))
-
             print("\n   Warte auf Änderungen...")
-
         time.sleep(0.5)
 
 
@@ -3205,10 +2654,10 @@ def watch_mode(src_path: Path, outfile: str, app_mode: tuple | None):
 # ═══════════════════════════════════════════════════════
 def print_help():
     print("""
-Transpiler.py  v5.0
+Transpiler.py  v5.2
 ────────────────────────────────────────────────────────
 VERWENDUNG:
-  python transpiler.py <eingabe.java> [Optionen]
+  python transpiler.py <eingabe.scrape> [Optionen]
 
 OPTIONEN:
   --out <datei.sb3>         Ausgabedatei (Standard: output.sb3)
@@ -3216,27 +2665,24 @@ OPTIONEN:
 
   TurboWarp Desktop:
   --turbowarp-new           Startet TurboWarp nach Kompilierung
-                            (bestehende Instanzen bleiben offen)
   --turbowarp-replace       Beendet laufende TurboWarp-Instanz, startet neu
 
   Desktop-Player:
   --scratch-new             Startet den Desktop-Player nach Kompilierung
-                            (bestehende Instanzen bleiben offen)
   --scratch-replace         Beendet laufende Desktop-Player-Instanz, startet neu
 
   --help                    Diese Hilfe anzeigen
 
-HINWEIS: --turbowarp-* und --scratch-* schließen sich gegenseitig aus.
-         Im Watch-Modus wird die App bei jeder Änderung neu gestartet.
+NEU in v5.1:
+  Bezeichner mit ungültigen Zeichen (Song#, my-var, ...) werden automatisch
+  sanitisiert (→ Song_, my_var) mit einer Warnung in der Ausgabe.
+  Damit sind .scrape-Dateien vom Detranspiler v1.0 direkt kompilierbar.
 
 BEISPIELE:
-  python transpiler.py spiel.java
-  python transpiler.py spiel.java --out spiel.sb3
-  python transpiler.py spiel.java --watch --turbowarp-replace
-  python transpiler.py spiel.scrape --watch --scratch-replace
-  python transpiler.py spiel.scrape --scratch-new
-
-Alle Infos zur Syntax: siehe README.md
+  python transpiler.py spiel.scrape
+  python transpiler.py spiel.scrape --out spiel.sb3
+  python transpiler.py spiel.scrape --watch --turbowarp-replace
+  python transpiler.py spiel.scrape --scratch-replace
 """)
 
 
@@ -3245,9 +2691,8 @@ def main():
     args     = sys.argv[1:]
     infile   = None
     outfile  = "output.sb3"
-    app_mode = None   # None | ("turbowarp"|"desktop-player", "new"|"replace")
+    app_mode = None
     watch    = False
-
     i = 0
     while i < len(args):
         a = args[i]
@@ -3280,7 +2725,6 @@ def main():
     if not src_path.exists():
         print(f"Fehler: Datei nicht gefunden: {src_path}"); sys.exit(1)
 
-    # Watch-Modus
     if watch:
         try:
             watch_mode(src_path, outfile, app_mode)
@@ -3288,11 +2732,9 @@ def main():
             print("\n👋  Watch-Modus beendet.")
         return
 
-    # Einmaliger Lauf
     source    = src_path.read_text(encoding="utf-8")
     base_dir  = src_path.parent
     asset_mgr = AssetManager(base_dir)
-
     print(f"Lese: {src_path}")
     success = compile_once(source, base_dir, outfile, asset_mgr)
     if not success:
