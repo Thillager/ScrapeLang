@@ -1,7 +1,17 @@
 """
-Transpiler.py  v5.2
+Transpiler.py  v5.3
 ════════════════════════════
 Scrape (Java-ähnliche Syntax) → .sb3-Projektdatei
+
+Neu in v5.3:
+  • Vollständige Erweiterungsbefehle für alle unterstützten Extensions:
+    – music:       playDrum, restForBeats, playNote, setInstrument,
+                   setTempo, changeTempo
+    – video:       setVideoTransparency, videoOn/videoOff/videoFlipped
+    – text2speech: speak, setVoice, setLanguage
+    – translate:   translate() (Ausdruck)
+    – makey:       keine neuen Statements (nutzt onKeyPressed)
+  • Detranspiler erkennt alle Extension-Opcodes korrekt
 
 Neu in v5.1:
   • switchCostume/playSound/animate: Validierung gibt Warnung statt Fehler
@@ -295,6 +305,13 @@ KEYWORDS = {
     "askAndWait","setDragMode","resetTimer",
     "penDown","penUp","setPenColor","changePenColor",
     "setPenSize","changePenSize","stampPen","erasePen",
+    # Music extension
+    "playDrum","restForBeats","playNote","setInstrument",
+    "setTempo","changeTempo",
+    # Video extension
+    "setVideoTransparency","videoOn","videoOff","videoFlipped",
+    # Text2Speech extension
+    "speak","setVoice","setLanguage",
     "broadcast","broadcastAndWait",
     "onCloneCreated",
     "define","void","public","private","shown","hidden",
@@ -302,6 +319,7 @@ KEYWORDS = {
     "random","abs","floor","ceil","sqrt",
     "sin","cos","tan","asin","acos","atan","ln","log","round",
     "length","letter","contains","join",
+    "getTempo","translate","viewerLanguage","videoMotion","videoDirection",
     "answer","mouseX","mouseY","mouseDown","keyPressed",
     "touching","touchingColor","distanceTo","timer",
     "currentYear","currentMonth","currentDate","currentDayOfWeek",
@@ -839,6 +857,22 @@ class Parser:
         if v == "erasePen":       return self.parse_no_arg("ErasePen")
         if v == "broadcast":         return self.parse_simple_str_cmd("Broadcast")
         if v == "broadcastAndWait":  return self.parse_simple_str_cmd("BroadcastAndWait")
+        # ── Music extension ───────────────────────────
+        if v == "playDrum":          return self.parse_music_2num("MusicPlayDrum")
+        if v == "restForBeats":      return self.parse_motion_1num("MusicRestForBeats")
+        if v == "playNote":          return self.parse_music_2num("MusicPlayNote")
+        if v == "setInstrument":     return self.parse_motion_1num("MusicSetInstrument")
+        if v == "setTempo":          return self.parse_motion_1num("MusicSetTempo")
+        if v == "changeTempo":       return self.parse_motion_1num("MusicChangeTempo")
+        # ── Video extension ───────────────────────────
+        if v == "setVideoTransparency": return self.parse_motion_1num("VideoSetTransparency")
+        if v == "videoOn":           return self.parse_no_arg("VideoOn")
+        if v == "videoOff":          return self.parse_no_arg("VideoOff")
+        if v == "videoFlipped":      return self.parse_no_arg("VideoFlipped")
+        # ── Text2Speech extension ─────────────────────
+        if v == "speak":             return self.parse_simple_expr_cmd("TtsSpeakAndWait")
+        if v == "setVoice":          return self.parse_simple_str_cmd("TtsSetVoice")
+        if v == "setLanguage":       return self.parse_simple_str_cmd("TtsSetLanguage")
         self.collector.add(ln,
             f"Unbekanntes Statement: {v!r}",
             f"Gültige Befehle: move, say, if, repeat, forever, var, void, ... – "
@@ -892,6 +926,20 @@ class Parser:
         self.consume("COMMA"); val = self.parse_expr()
         self.consume("RPAREN"); cmt = self.expect_semi()
         return self._stmt({"type": t, "effect": effect, "value": val}, cmt)
+
+    def parse_music_2num(self, t):
+        """Parses commands with 2 numeric arguments, e.g. playDrum(drum, beats)."""
+        ln = self.current_line(); self.consume(); self.consume("LPAREN")
+        a = self.parse_expr(); self.consume("COMMA"); b = self.parse_expr()
+        self.consume("RPAREN"); cmt = self.expect_semi()
+        return self._stmt({"type": t, "a": a, "b": b}, cmt)
+
+    def parse_simple_expr_cmd(self, t):
+        """Parses commands with one arbitrary expression argument."""
+        ln = self.current_line(); self.consume(); self.consume("LPAREN")
+        val = self.parse_expr()
+        self.consume("RPAREN"); cmt = self.expect_semi()
+        return self._stmt({"type": t, "value": val}, cmt)
 
     def parse_var_decl(self):
         self.consume(value="var"); name = self.consume("IDENT"); value = None
@@ -1283,6 +1331,30 @@ class Parser:
             self.consume("RPAREN"); return {"type": "DistanceTo", "target": target}
         if v in ("xPosition","yPosition","direction"):
             self.consume(); return {"type": "MotionVal", "val": v}
+        # ── Music reporter ────────────────────────────
+        if v == "getTempo":
+            self.consume(); return {"type": "MusicGetTempo"}
+        # ── Translate reporter ────────────────────────
+        if v == "translate":
+            self.consume(); self.consume("LPAREN")
+            words = self.parse_expr(); self.consume("COMMA")
+            lang = self.parse_expr()
+            self.consume("RPAREN")
+            return {"type": "TranslateGetTranslate", "words": words, "language": lang}
+        # ── Viewer language reporter ──────────────────
+        if v == "viewerLanguage":
+            self.consume(); return {"type": "TtsViewerLanguage"}
+        # ── Video reporters ───────────────────────────
+        if v == "videoMotion":
+            self.consume(); self.consume("LPAREN")
+            subject = self.parse_expr()
+            self.consume("RPAREN")
+            return {"type": "VideoSensingMotion", "attribute": "motion", "subject": subject}
+        if v == "videoDirection":
+            self.consume(); self.consume("LPAREN")
+            subject = self.parse_expr()
+            self.consume("RPAREN")
+            return {"type": "VideoSensingMotion", "attribute": "direction", "subject": subject}
         if k == "IDENT":
             name = self.consume("IDENT")
             if self.peek()[1] == "[":
@@ -1741,6 +1813,59 @@ class BlockGenerator:
             mid = self._broadcast_id(node["value"])
             self._add(bid,"event_broadcastandwait",parent_id,next_id,
                 inputs={"BROADCAST_INPUT":[1,[11,node["value"],mid]]}); return bid
+        # ── Music extension ────────────────────────────
+        if t == "MusicPlayDrum":
+            dmid = self._menu_shadow("music_menu_DRUM","DRUM",
+                str(int(node["a"]["value"]) if node["a"]["type"]=="Num" else 1), bid)
+            self._add(bid,"music_playDrumForBeats",parent_id,next_id,
+                inputs={"DRUM":[1,dmid],"BEATS":self._num_input(node["b"],bid)}); return bid
+        if t == "MusicRestForBeats":
+            self._add(bid,"music_restForBeats",parent_id,next_id,
+                inputs={"BEATS":self._num_input(node["value"],bid)}); return bid
+        if t == "MusicPlayNote":
+            nmid = self._menu_shadow("note","NOTE",
+                str(int(node["a"]["value"]) if node["a"]["type"]=="Num" else 60), bid)
+            self._add(bid,"music_playNoteForBeats",parent_id,next_id,
+                inputs={"NOTE":[1,nmid],"BEATS":self._num_input(node["b"],bid)}); return bid
+        if t == "MusicSetInstrument":
+            imid = self._menu_shadow("music_menu_INSTRUMENT","INSTRUMENT",
+                str(int(node["value"]["value"]) if node["value"]["type"]=="Num" else 1), bid)
+            self._add(bid,"music_setInstrument",parent_id,next_id,
+                inputs={"INSTRUMENT":[1,imid]}); return bid
+        if t == "MusicSetTempo":
+            self._add(bid,"music_setTempo",parent_id,next_id,
+                inputs={"TEMPO":self._num_input(node["value"],bid)}); return bid
+        if t == "MusicChangeTempo":
+            self._add(bid,"music_changeTempo",parent_id,next_id,
+                inputs={"TEMPO":self._num_input(node["value"],bid)}); return bid
+        # ── Video extension ────────────────────────────
+        if t == "VideoSetTransparency":
+            self._add(bid,"videoSensing_setVideoTransparency",parent_id,next_id,
+                inputs={"TRANSPARENCY":self._num_input(node["value"],bid)}); return bid
+        if t == "VideoOn":
+            mid = self._menu_shadow("videoSensing_menu_VIDEO_STATE","VIDEO_STATE","on",bid)
+            self._add(bid,"videoSensing_videoToggle",parent_id,next_id,
+                inputs={"VIDEO_STATE":[1,mid]}); return bid
+        if t == "VideoOff":
+            mid = self._menu_shadow("videoSensing_menu_VIDEO_STATE","VIDEO_STATE","off",bid)
+            self._add(bid,"videoSensing_videoToggle",parent_id,next_id,
+                inputs={"VIDEO_STATE":[1,mid]}); return bid
+        if t == "VideoFlipped":
+            mid = self._menu_shadow("videoSensing_menu_VIDEO_STATE","VIDEO_STATE","on-flipped",bid)
+            self._add(bid,"videoSensing_videoToggle",parent_id,next_id,
+                inputs={"VIDEO_STATE":[1,mid]}); return bid
+        # ── Text2Speech extension ──────────────────────
+        if t == "TtsSpeakAndWait":
+            self._add(bid,"text2speech_speakAndWait",parent_id,next_id,
+                inputs={"WORDS":self._input(node["value"],bid)}); return bid
+        if t == "TtsSetVoice":
+            mid = self._menu_shadow("text2speech_menu_voices","VOICE",node["value"],bid)
+            self._add(bid,"text2speech_setVoice",parent_id,next_id,
+                inputs={"VOICE":[1,mid]}); return bid
+        if t == "TtsSetLanguage":
+            mid = self._menu_shadow("text2speech_menu_languages","LANGUAGE",node["value"],bid)
+            self._add(bid,"text2speech_setLanguage",parent_id,next_id,
+                inputs={"LANGUAGE":[1,mid]}); return bid
         if t == "CustomCall":
             proccode = self.custom_procs.get(node["name"],
                            node["name"]+" "+" ".join(["%s"]*len(node["args"])))
@@ -1869,6 +1994,26 @@ class BlockGenerator:
             self._add(bid,"data_listcontainsitem",parent_id,None,
                 inputs={"ITEM":self._input(node["item"],bid)},
                 fields={"LIST":[node["list"],self._list_id(node["list"])]}); return bid
+        # ── Music reporter ─────────────────────────────
+        if t == "MusicGetTempo":
+            self._add(bid,"music_getTempo",parent_id,None); return bid
+        # ── Translate reporter ─────────────────────────
+        if t == "TranslateGetTranslate":
+            lang_mid = self._menu_shadow("translate_menu_languages","LANGUAGE",
+                node["language"]["value"] if node["language"]["type"]=="Str" else "en", bid)
+            self._add(bid,"translate_getTranslate",parent_id,None,
+                inputs={"WORDS":self._input(node["words"],bid),
+                        "LANGUAGE":[1,lang_mid]}); return bid
+        if t == "TtsViewerLanguage":
+            self._add(bid,"translate_getViewerLanguage",parent_id,None); return bid
+        # ── Video reporters ─────────────────────────────
+        if t == "VideoSensingMotion":
+            attr = node.get("attribute","motion")
+            attr_mid = self._menu_shadow("videoSensing_menu_ATTRIBUTE","ATTRIBUTE",attr,bid)
+            subj_raw = node["subject"]["value"] if node["subject"]["type"]=="Str" else "this sprite"
+            subj_mid = self._menu_shadow("videoSensing_menu_SUBJECT","SUBJECT",subj_raw,bid)
+            self._add(bid,"videoSensing_videoOn",parent_id,None,
+                inputs={"ATTRIBUTE":[1,attr_mid],"SUBJECT":[1,subj_mid]}); return bid
         raise ValueError(f"Unbekannter Ausdrucks-Typ: {t!r}")
 
     def gen_custom_def(self, cdef, x=0, y=0):
@@ -2026,10 +2171,24 @@ def build_project(ast: dict, asset_mgr: AssetManager) -> dict:
     targets[0]["broadcasts"] = {bid:name for name,bid in all_broadcasts.items()}
 
     extensions = list(ast.get("extensions", []))
-    has_pen = any(any(b.get("opcode","").startswith("pen_")
-                      for b in t["blocks"].values()) for t in targets)
-    if has_pen and "pen" not in extensions:
-        extensions.append("pen")
+    _EXT_PREFIXES = {
+        "pen_":               "pen",
+        "music_":             "music",
+        "videoSensing_":      "videoSensing",
+        "text2speech_":       "text2speech",
+        "translate_":         "translate",
+        "makeymakey_":        "makeymakey",
+        "microbit_":          "microbit",
+        "ev3_":               "ev3",
+        "boost_":             "boost",
+        "wedo2_":             "wedo2",
+        "gdxfor_":            "gdxfor",
+    }
+    for prefix, ext_id in _EXT_PREFIXES.items():
+        if ext_id not in extensions:
+            if any(any(b.get("opcode","").startswith(prefix)
+                       for b in t["blocks"].values()) for t in targets):
+                extensions.append(ext_id)
 
     return {"targets":targets,"monitors":[],"extensions":extensions,
             "meta":{"semver":"3.0.0","vm":"0.2.0","agent":"scrape-transpiler/5.2"}}
@@ -2672,6 +2831,23 @@ OPTIONEN:
   --scratch-replace         Beendet laufende Desktop-Player-Instanz, startet neu
 
   --help                    Diese Hilfe anzeigen
+
+ERWEITERUNGSBEFEHLE (nach import "ext";):
+  Music:        playDrum(drum, beats);  restForBeats(beats);
+                playNote(note, beats);  setInstrument(num);
+                setTempo(bpm);  changeTempo(delta);
+                getTempo  (Ausdruck)
+  Video:        videoOn();  videoOff();  videoFlipped();
+                setVideoTransparency(percent);
+                videoMotion("this sprite")  (Ausdruck)
+                videoDirection("this sprite")  (Ausdruck)
+  Text2Speech:  speak(text);  setVoice("Alto");
+                setLanguage("de");
+  Translate:    translate(text, "de")  (Ausdruck)
+                viewerLanguage  (Ausdruck)
+  Pen:          penDown();  penUp();  stampPen();  erasePen();
+                setPenColor(color);  changePenColor(delta);
+                setPenSize(size);  changePenSize(delta);
 
 NEU in v5.1:
   Bezeichner mit ungültigen Zeichen (Song#, my-var, ...) werden automatisch
