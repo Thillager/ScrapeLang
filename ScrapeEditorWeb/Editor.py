@@ -122,6 +122,32 @@ AC_ENTRIES = [
     ("stampPen", "stampPen();", "stampPen()", "Abbild stempeln", 0),
     ("erasePen", "erasePen();", "erasePen()", "Stiftspuren löschen", 0),
 
+    # Music extension (import "music";)
+    ("playDrum", "playDrum(|, );", "playDrum(drum, beats)", "Schlagzeug spielen (1=Bass, 2=Snare, ...)", 0),
+    ("restForBeats", "restForBeats(|);", "restForBeats(beats)", "Pause machen", 0),
+    ("playNote", "playNote(|, );", "playNote(note, beats)", "Note spielen (60=Mittleres C)", 0),
+    ("setInstrument", "setInstrument(|);", "setInstrument(num)", "Instrument setzen (1–21)", 0),
+    ("setTempo", "setTempo(|);", "setTempo(bpm)", "Tempo setzen (Schläge pro Minute)", 0),
+    ("changeTempo", "changeTempo(|);", "changeTempo(delta)", "Tempo ändern", 0),
+    ("getTempo", "getTempo", "getTempo", "Aktuelles Tempo (Ausdruck)", 0),
+
+    # Video Sensing extension (import "video";)
+    ("videoOn", "videoOn();", "videoOn()", "Kamera einschalten", 0),
+    ("videoOff", "videoOff();", "videoOff()", "Kamera ausschalten", 0),
+    ("videoFlipped", "videoFlipped();", "videoFlipped()", "Kamera gespiegelt einschalten", 0),
+    ("setVideoTransparency", "setVideoTransparency(|);", "setVideoTransparency(percent)", "Kamera-Transparenz setzen", 0),
+    ("videoMotion", 'videoMotion("|")', 'videoMotion("this sprite")', "Videobewegung auf Objekt (Ausdruck)", 0),
+    ("videoDirection", 'videoDirection("|")', 'videoDirection("this sprite")', "Videorichtung auf Objekt (Ausdruck)", 0),
+
+    # Text2Speech extension (import "text2speech";)
+    ("speak", 'speak("|");', 'speak("text")', "Text vorlesen", 0),
+    ("setVoice", 'setVoice("|");', 'setVoice("Alto")', 'Stimme setzen: "Alto", "Tenor", "Squeak", "Giant", "Kitten"', 0),
+    ("setLanguage", 'setLanguage("|");', 'setLanguage("de")', "Sprache setzen (z.B. \"de\", \"en\")", 0),
+
+    # Translate extension (import "translate";)
+    ("translate", 'translate(|, "de")', 'translate(text, "sprache")', "Text übersetzen (Ausdruck)", 0),
+    ("viewerLanguage", "viewerLanguage", "viewerLanguage", "Sprache des Betrachters (Ausdruck)", 0),
+
     ("Math.random", "Math.random(|, )", "Math.random(a, b)", "Zufallszahl", 0),
     ("Math.round", "Math.round(|)", "Math.round(n)", "Runden", 0),
     ("Math.abs", "Math.abs(|)", "Math.abs(n)", "Betrag", 0),
@@ -436,7 +462,10 @@ const KEYWORDS = new Set((
   "playSound playSoundUntilDone stopAllSounds setVolume changeVolume " +
   "askAndWait setDragMode resetTimer penDown penUp setPenColor " +
   "changePenColor setPenSize changePenSize stampPen erasePen broadcast " +
-  "broadcastAndWait addCostume addBackdrop addSound true false"
+  "broadcastAndWait addCostume addBackdrop addSound " +
+  "playDrum restForBeats playNote setInstrument setTempo changeTempo getTempo " +
+  "videoOn videoOff videoFlipped setVideoTransparency videoMotion videoDirection " +
+  "speak setVoice setLanguage translate viewerLanguage true false"
 ).split(/\s+/));
 
 function makeHighlightedHtml(source) {
