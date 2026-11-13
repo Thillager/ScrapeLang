@@ -1336,7 +1336,7 @@ def normalize_ip(value):
     return address
 
 
-def make_handler(workspace, token, allowed_ips):
+def make_handler(workspace, token, allowed_ips, allow_all_ips=False):
     class Handler(BaseHTTPRequestHandler):
         server_version = "ScrapeWebEditor/3.2"
 
@@ -1350,6 +1350,8 @@ def make_handler(workspace, token, allowed_ips):
                 return None
 
         def access_allowed(self):
+            if allow_all_ips:
+                return True
             address = self.client_ip()
             return address is not None and address in allowed_ips
 
@@ -1497,7 +1499,7 @@ def main():
     parser.add_argument("--port", type=int, default=8765, help="HTTP-Port.")
     parser.add_argument(
         "--ip", action="append", default=[], metavar="IP",
-        help="Zusätzliche exakt erlaubte Client-IP; mehrfach verwendbar.",
+        help="Zusätzliche exakt erlaubte Client-IP; mehrfach verwendbar. Mit --ip all werden alle Client-IPs erlaubt.",
     )
     parser.add_argument(
         "--transpiler", default=str(SCRIPT_DIR / "Transpiler.py"),
@@ -1517,10 +1519,12 @@ def main():
         parser.error("Port muss zwischen 1 und 65535 liegen.")
 
     try:
-        # Loopback ist immer erlaubt; zusätzliche Clients müssen explizit mit --ip freigegeben werden.
+        # Loopback ist immer erlaubt; --ip all schaltet die IP-Prüfung vollständig aus.
         allowed_ips = {normalize_ip("127.0.0.1"), normalize_ip("::1")}
+        allow_all_ips = any(value.lower() == "all" for value in args.ip)
         for value in args.ip:
-            allowed_ips.add(normalize_ip(value))
+            if value.lower() != "all":
+                allowed_ips.add(normalize_ip(value))
     except ValueError as exc:
         parser.error(f"Ungültige IP-Adresse für --ip: {exc}")
 
@@ -1538,7 +1542,7 @@ def main():
     try:
         server = Server(
             (args.host, args.port),
-            make_handler(workspace, token, allowed_ips),
+            make_handler(workspace, token, allowed_ips, allow_all_ips),
         )
     except OSError as exc:
         parser.error(f"Server konnte nicht gestartet werden: {exc}")
@@ -1548,7 +1552,10 @@ def main():
 
     print(f"Workspace: {root}")
     print(f"Editor:    {url}")
-    print("Erlaubte Client-IPs:", ", ".join(sorted(str(ip) for ip in allowed_ips)))
+    if allow_all_ips:
+        print("Erlaubte Client-IPs: ALLE (--ip all)")
+    else:
+        print("Erlaubte Client-IPs:", ", ".join(sorted(str(ip) for ip in allowed_ips)))
     print("Mit Ctrl+C beenden.")
 
     if not args.no_browser:
