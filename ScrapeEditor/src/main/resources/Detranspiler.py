@@ -1,12 +1,14 @@
 """
-Detranspiler.py  v1.2
+Detranspiler.py  v1.3
 ══════════════════════════════════════════════
 Scratch 3 / TurboWarp .sb3  →  Java-ähnliche Syntax
 
-Unterstützt alle Blöcke aus Transpiler.py v5.0:
+Unterstützt alle Blöcke aus Transpiler.py v5.3:
+  • Alle Erweiterungen: Pen, Music, Video Sensing,
+    Text2Speech, Translate, MakeyMakey, Microbit,
+    EV3, Boost, WeDo 2.0, GDX FOR
   • Motion, Looks, Sound, Events, Control
   • Sensing, Operators, Data (Variablen, Listen)
-  • Pen-Erweiterung
   • Custom Blocks (define / void)
   • Kommentare (Scratch Comments → // Kommentare)
   • Watch-Modus (--watch)
@@ -323,6 +325,36 @@ class ExprGen:
         if op == "looks_size":
             return "/* size */"
 
+        # ── Music reporters ────────────────────────────
+        if op == "music_getTempo":
+            return "getTempo"
+
+        # ── Video Sensing reporters ────────────────────
+        if op == "videoSensing_videoOn":
+            attr = ""
+            mid_a = r.input_block(b, "ATTRIBUTE")
+            if mid_a:
+                attr = r.field(r.blocks.get(mid_a, {}), "ATTRIBUTE") or "motion"
+            mid_s = r.input_block(b, "SUBJECT")
+            subj = r.field(r.blocks.get(mid_s, {}), "SUBJECT") or "this sprite" if mid_s else "this sprite"
+            fn = "videoDirection" if attr == "direction" else "videoMotion"
+            return f'{fn}("{subj}")'
+
+        # ── Translate reporters ────────────────────────
+        if op == "translate_getTranslate":
+            lang = ""
+            mid_l = r.input_block(b, "LANGUAGE")
+            if mid_l:
+                lang = r.field(r.blocks.get(mid_l, {}), "LANGUAGE") or "en"
+            return f'translate({self._i(b,"WORDS")}, "{lang}")'
+        if op == "translate_getViewerLanguage":
+            return "viewerLanguage"
+
+        # ── Hardware extension reporters (generic) ─────
+        if any(op.startswith(p) for p in
+               ("microbit_","ev3_","boost_","wedo2_","gdxfor_")):
+            return f"/* {op} */"
+
         return f"/* {op} */"
 
 
@@ -592,6 +624,78 @@ class StmtGen:
         if op == "pen_changePenSizeBy":     return f"{pad}changePenSize({self._inp(b,'SIZE')});"
         if op == "pen_stamp":               return f"{pad}stampPen();"
         if op == "pen_clear":               return f"{pad}erasePen();"
+        # Pen colour-param variant (setPenColorParamTo / changePenColorParam)
+        if op == "pen_setPenColorParamTo":
+            param = self._menu_field(b, "COLOR_PARAM", "colorParam")
+            return f"{pad}/* setPenColorParam(\"{param}\", {self._inp(b,'VALUE')}); */"
+        if op == "pen_changePenColorParamBy":
+            param = self._menu_field(b, "COLOR_PARAM", "colorParam")
+            return f"{pad}/* changePenColorParam(\"{param}\", {self._inp(b,'VALUE')}); */"
+
+        # ── Music extension ───────────────────────────
+        if op == "music_playDrumForBeats":
+            drum = self._menu_field(b, "DRUM", "DRUM")
+            return f"{pad}playDrum({drum}, {self._inp(b,'BEATS')});"
+        if op == "music_restForBeats":
+            return f"{pad}restForBeats({self._inp(b,'BEATS')});"
+        if op == "music_playNoteForBeats":
+            note = self._menu_field(b, "NOTE", "NOTE")
+            return f"{pad}playNote({note}, {self._inp(b,'BEATS')});"
+        if op == "music_setInstrument":
+            instr = self._menu_field(b, "INSTRUMENT", "INSTRUMENT")
+            return f"{pad}setInstrument({instr});"
+        if op == "music_setTempo":
+            return f"{pad}setTempo({self._inp(b,'TEMPO')});"
+        if op == "music_changeTempo":
+            return f"{pad}changeTempo({self._inp(b,'TEMPO')});"
+        if op in ("music_midiPlayDrumForBeats",):
+            return f"{pad}/* {op} */"
+
+        # ── Video Sensing extension ───────────────────
+        if op == "videoSensing_videoToggle":
+            state = self._menu_field(b, "VIDEO_STATE", "VIDEO_STATE")
+            if state == "on":         return f"{pad}videoOn();"
+            if state == "off":        return f"{pad}videoOff();"
+            if state == "on-flipped": return f"{pad}videoFlipped();"
+            return f'{pad}/* videoSensing_videoToggle("{state}") */'
+        if op == "videoSensing_setVideoTransparency":
+            return f"{pad}setVideoTransparency({self._inp(b,'TRANSPARENCY')});"
+
+        # ── Text2Speech extension ─────────────────────
+        if op == "text2speech_speakAndWait":
+            return f"{pad}speak({self._inp(b,'WORDS')});"
+        if op == "text2speech_setVoice":
+            voice = self._menu_field(b, "VOICE", "VOICE")
+            return f'{pad}setVoice("{voice}");'
+        if op == "text2speech_setLanguage":
+            lang = self._menu_field(b, "LANGUAGE", "LANGUAGE")
+            return f'{pad}setLanguage("{lang}");'
+
+        # ── Translate extension ───────────────────────
+        # (translate_getTranslate is a reporter, not a statement – handled in ExprGen)
+
+        # ── MakeyMakey extension ──────────────────────
+        # No new statement blocks (uses standard events)
+
+        # ── Microbit extension ────────────────────────
+        if op.startswith("microbit_"):
+            return f"{pad}/* {op} */"
+
+        # ── EV3 extension ─────────────────────────────
+        if op.startswith("ev3_"):
+            return f"{pad}/* {op} */"
+
+        # ── Boost extension ───────────────────────────
+        if op.startswith("boost_"):
+            return f"{pad}/* {op} */"
+
+        # ── WeDo 2.0 extension ────────────────────────
+        if op.startswith("wedo2_"):
+            return f"{pad}/* {op} */"
+
+        # ── GDX FOR extension ─────────────────────────
+        if op.startswith("gdxfor_"):
+            return f"{pad}/* {op} */"
 
         # ── Custom Block Call ─────────────────────────
         if op == "procedures_call":
@@ -957,7 +1061,7 @@ def watch_mode(src_path: Path, out_path: Path):
 
 def print_help():
     print("""
-Detranspiler.py  v1.2
+Detranspiler.py  v1.3
 ────────────────────────────────────────────────────────
 VERWENDUNG:
   python detranspiler.py <eingabe.sb3> [Optionen]
@@ -972,6 +1076,12 @@ BEISPIELE:
   python detranspiler.py spiel.sb3 --output spiel.scrape
   python detranspiler.py spiel.sb3 --watch
   python detranspiler.py spiel.sb3 --output meinspiel.scrape --watch
+
+ERWEITERUNGEN:
+  Erweiterungsbefehle werden automatisch erkannt und als Scrape-Code ausgegeben.
+  Unterstützte Erweiterungen: Pen, Music, Video Sensing, Text2Speech, Translate.
+  Hardware-Erweiterungen (Microbit, EV3, Boost, WeDo, GDX FOR) werden als
+  /* opcode */ Kommentare ausgegeben.
 
 Identifier-Sanitisierung:
   Variablen- und Sprite-Namen die in Scratch gültig sind, aber ungültige
