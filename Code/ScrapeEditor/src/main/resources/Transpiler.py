@@ -1022,8 +1022,9 @@ class Parser:
                                 display = mod
                     nv = self.peek()[1]
                     if nv == "var":
-                        scope = scope or "public"
-                        display = display or "shown"
+                        # Ohne Modifier sind Variablen standardmäßig privat und verborgen.
+                        scope = scope or "private"
+                        display = display or "hidden"
                         decl = self.parse_var_decl()
                         decl["scope"] = scope
                         decl["display"] = display
@@ -2128,7 +2129,13 @@ class BlockGenerator:
         return [2, child_id]
 
     def _var_id(self, n):
-        if n not in self.variables: self.variables[n] = new_id()
+        # Public variables use one project-wide Scratch ID on every target.
+        # Private declarations remain local to their owning sprite.
+        if self._var_scope.get(n) != "private" and n in self.public_variables:
+            self.variables[n] = self.public_variables[n]
+            return self.public_variables[n]
+        if n not in self.variables:
+            self.variables[n] = new_id()
         return self.variables[n]
 
     def _list_id(self, n):
@@ -2287,17 +2294,20 @@ class BlockGenerator:
         if t == "VarDecl":
             inp      = self._input(node["value"], bid) if node["value"] else [1,[10,""]]
             var_name = node["name"]
-            scope    = node.get("scope",   "public")
-            display  = node.get("display", "shown")
+            scope    = node.get("scope",   "private")
+            display  = node.get("display", "hidden")
             self._var_scope[var_name] = scope
             self._add(bid, "data_setvariableto", parent_id, next_id,
                 inputs={"VALUE": inp},
                 fields={"VARIABLE": [var_name, self._var_id(var_name)]})
-            if display == "hidden":
-                hide_id = new_id()
-                self._add(hide_id, "data_hidevariable", bid, next_id,
-                    fields={"VARIABLE": [var_name, self._var_id(var_name)]})
-                self.blocks[bid]["next"] = hide_id
+            # Scratch/TurboWarp-Variablenmonitore werden über dieselben
+            # show/hide-Blöcke gesteuert wie bei showVar()/hideVar().
+            visibility_id = new_id()
+            visibility_opcode = ("data_showvariable" if display == "shown"
+                                 else "data_hidevariable")
+            self._add(visibility_id, visibility_opcode, bid, next_id,
+                fields={"VARIABLE": [var_name, self._var_id(var_name)]})
+            self.blocks[bid]["next"] = visibility_id
             return bid
         if t == "VarSet":
             self._add(bid, "data_setvariableto", parent_id, next_id,
@@ -2805,8 +2815,10 @@ class BlockGenerator:
         self.blocks[hat_id]["next"] = first
         return hat_id
 
-    def gen_target(self, target_node, broadcast_registry: dict | None = None):
+    def gen_target(self, target_node, broadcast_registry: dict | None = None,
+                   public_variable_registry: dict | None = None):
         self.blocks = {}; self.variables = {}; self.lists = {}
+        self.public_variables = public_variable_registry if public_variable_registry is not None else {}
         # Broadcast-Nachrichten sind projektweit, nicht Sprite-lokal.
         # build_project übergibt allen Targets dieselbe Registry, damit Sender
         # und Empfänger für denselben Nachrichtennamen dieselbe Scratch-ID nutzen.
@@ -2932,12 +2944,30 @@ def _normalize_project_broadcasts(targets: list[dict]) -> dict[str, str]:
 def build_project(ast: dict, asset_mgr: AssetManager) -> dict:
     gen = BlockGenerator(); targets = []; all_broadcasts = {}
 
+    # Resolve public declarations before generating any target. Otherwise a
+    # reference encountered in Sprite B before/without its declaration there
+    # gets a fresh sprite-local ID instead of the declaring sprite's ID.
+    public_variables: dict[str, str] = {}
+
+    def collect_public_declarations(value):
+        if isinstance(value, dict):
+            if value.get("type") == "VarDecl" and value.get("scope", "public") != "private":
+                public_variables.setdefault(value["name"], new_id())
+            for child in value.values():
+                collect_public_declarations(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect_public_declarations(child)
+
+    collect_public_declarations(ast.get("targets", []))
+
     stage_node = next((t for t in ast["targets"] if t["type"]=="Stage"), None)
     stage_blocks, stage_vars, stage_lists, stage_comments = {}, {}, {}, {}
     if stage_node:
         print(f"  Stage '{stage_node['name']}':")
         stage_blocks, stage_vars, stage_lists, bcast, _, stage_comments = gen.gen_target(
-            stage_node, broadcast_registry=all_broadcasts)
+            stage_node, broadcast_registry=all_broadcasts,
+            public_variable_registry=public_variables)
         all_broadcasts.update(bcast)
         backdrops = []
         for bd in stage_node.get("backdrops",[]):
@@ -2961,7 +2991,8 @@ def build_project(ast: dict, asset_mgr: AssetManager) -> dict:
     for i, snode in enumerate([t for t in ast["targets"] if t["type"]=="Sprite"]):
         print(f"  Sprite '{snode['name']}':")
         blocks, variables, lists, bcast, var_scope, sprite_comments = gen.gen_target(
-            snode, broadcast_registry=all_broadcasts)
+            snode, broadcast_registry=all_broadcasts,
+            public_variable_registry=public_variables)
         all_broadcasts.update(bcast)
 
         sprite_vars = {}
