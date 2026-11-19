@@ -1,18 +1,18 @@
 """
-Detranspiler.py  v1.3
+Detranspiler.py  v2.1
 ══════════════════════════════════════════════
 Scratch 3 / TurboWarp .sb3  →  Java-ähnliche Syntax
 
-Unterstützt alle Blöcke aus Transpiler.py v5.3:
-  • Alle Erweiterungen: Pen, Music, Video Sensing,
-    Text2Speech, Translate, MakeyMakey, Microbit,
-    EV3, Boost, WeDo 2.0, GDX FOR
+Unterstützt die Funktionen aus Transpiler.py v6.0:
+  • Alle Erweiterungen aus Transpiler.py v6.0 einschließlich generischer
+    Low-Level-Extension-Blöcke, Reporter, Menüs und Event-Hats
   • Motion, Looks, Sound, Events, Control
   • Sensing, Operators, Data (Variablen, Listen)
   • Custom Blocks (define / void)
   • Kommentare (Scratch Comments → // Kommentare)
   • Watch-Modus (--watch)
   • --output <datei.scrape>  (Standard: output.scrape)
+  • --setting <datei.json>  (Projektparameter aus JSON laden)
 
 Neu in v1.1:
   • Identifier-Sanitisierung: ungültige Zeichen (z.B. #, -, Leerzeichen)
@@ -24,7 +24,7 @@ Neu in v1.1:
     Custom-Block-Argumente) werden über eine zentrale Name-Map übersetzt.
 """
 
-import json, zipfile, sys, time, re
+import json, zipfile, sys, time, re, argparse
 from pathlib import Path
 
 
@@ -159,6 +159,41 @@ class BlockResolver:
 # ═══════════════════════════════════════════════════════
 #  Ausdruck-Generator
 # ═══════════════════════════════════════════════════════
+
+def _q(value) -> str:
+    """JSON-kompatibles Stringliteral für Scrape."""
+    return json.dumps(str(value), ensure_ascii=False)
+
+
+def _raw_input_value(resolver, expr, value):
+    """Serialisiert einen Scratch-Input für die Low-Level-Extension-API."""
+    if isinstance(value, list):
+        kind = value[0] if value else 10
+        raw = value[1] if len(value) > 1 else ""
+        if kind in (4, 5, 6, 7, 8):
+            return _num(raw)
+        if kind in (12, 13):
+            return resolver.sanitize(str(raw))
+        return _q(raw)
+    if isinstance(value, str) and value in resolver.blocks:
+        block = resolver.blocks[value]
+        op = block.get("opcode", "")
+        if op.endswith("_menu") or "menu_" in op:
+            fields = block.get("fields", {})
+            if fields:
+                field_name, field_value = next(iter(fields.items()))
+                return f'extensionMenu({_q(op)}, {_q(field_name)}, {_q(field_value[0] if field_value else "")})'
+        return expr.from_block(value)
+    return _q(value) if value is not None else '""'
+
+
+def _raw_extension_call(resolver, expr, block, prefix):
+    op = block.get("opcode", "")
+    args = [_q(op)]
+    for key, value in block.get("inputs", {}).items():
+        args.extend((_q(key), _raw_input_value(resolver, expr, value[1] if isinstance(value, list) and len(value) > 1 else value)))
+    return f'{prefix}({", ".join(args)})'
+
 
 class ExprGen:
     def __init__(self, resolver: BlockResolver):
@@ -349,6 +384,17 @@ class ExprGen:
             return f'translate({self._i(b,"WORDS")}, "{lang}")'
         if op == "translate_getViewerLanguage":
             return "viewerLanguage"
+
+        # ── Generische Low-Level-Extension-Reporter (Transpiler v6.0) ──
+        if op.startswith(("makeymakey_", "microbit_", "ev3_", "boost_", "wedo2_", "gdxfor_", "pen_", "music_", "videoSensing_", "text2speech_", "translate_")):
+            if op.endswith("_menu") or "menu_" in op:
+                fields = b.get("fields", {})
+                if fields:
+                    fk, fv = next(iter(fields.items()))
+                    return f'extensionMenu({_q(op)}, {_q(fk)}, {_q(fv[0] if fv else "")})'
+            tail = op.rsplit("_", 1)[-1].lower()
+            boolean_like = any(word in tail for word in ("is", "pressed", "connected", "touching", "detected", "tilted"))
+            return _raw_extension_call(r, self, b, "extensionBoolean" if boolean_like else "extensionReporter")
 
         # ── Hardware extension reporters (generic) ─────
         if any(op.startswith(p) for p in
@@ -639,8 +685,7 @@ class StmtGen:
         if op == "music_restForBeats":
             return f"{pad}restForBeats({self._inp(b,'BEATS')});"
         if op == "music_playNoteForBeats":
-            note = self._menu_field(b, "NOTE", "NOTE")
-            return f"{pad}playNote({note}, {self._inp(b,'BEATS')});"
+            return f"{pad}playNote({self._inp(b,'NOTE')}, {self._inp(b,'BEATS')});"
         if op == "music_setInstrument":
             instr = self._menu_field(b, "INSTRUMENT", "INSTRUMENT")
             return f"{pad}setInstrument({instr});"
@@ -679,23 +724,23 @@ class StmtGen:
 
         # ── Microbit extension ────────────────────────
         if op.startswith("microbit_"):
-            return f"{pad}/* {op} */"
+            return f"{pad}{_raw_extension_call(r, self.e, b, 'extensionBlock')};"
 
         # ── EV3 extension ─────────────────────────────
         if op.startswith("ev3_"):
-            return f"{pad}/* {op} */"
+            return f"{pad}{_raw_extension_call(r, self.e, b, 'extensionBlock')};"
 
         # ── Boost extension ───────────────────────────
         if op.startswith("boost_"):
-            return f"{pad}/* {op} */"
+            return f"{pad}{_raw_extension_call(r, self.e, b, 'extensionBlock')};"
 
         # ── WeDo 2.0 extension ────────────────────────
         if op.startswith("wedo2_"):
-            return f"{pad}/* {op} */"
+            return f"{pad}{_raw_extension_call(r, self.e, b, 'extensionBlock')};"
 
         # ── GDX FOR extension ─────────────────────────
         if op.startswith("gdxfor_"):
-            return f"{pad}/* {op} */"
+            return f"{pad}{_raw_extension_call(r, self.e, b, 'extensionBlock')};"
 
         # ── Custom Block Call ─────────────────────────
         if op == "procedures_call":
@@ -724,6 +769,10 @@ class StmtGen:
                 else:
                     args.append('""')
             return f"{pad}{pname}({', '.join(args)});"
+
+        # ── Generische Low-Level-Extension-Aufrufe (Transpiler v6.0) ──
+        if op.startswith(("makeymakey_", "microbit_", "ev3_", "boost_", "wedo2_", "gdxfor_", "pen_", "music_", "videoSensing_", "text2speech_", "translate_")):
+            return f"{pad}{_raw_extension_call(r, self.e, b, 'extensionBlock')};"
 
         # Unknown block → comment
         return f"{pad}/* {op} */"
@@ -919,6 +968,20 @@ class TargetDecompiler:
                 scripts.append(s)
         return scripts
 
+    def _raw_hat_arg(self, key, input_value):
+        value = input_value[1] if isinstance(input_value, list) and len(input_value) > 1 else input_value
+        if isinstance(value, list):
+            raw = value[1] if len(value) > 1 else ""
+            return _q(raw) if value[0] not in (4, 5, 6, 7, 8) else _num(raw)
+        if isinstance(value, str) and value in self.resolver.blocks:
+            block = self.resolver.blocks[value]
+            fields = block.get("fields", {})
+            if fields:
+                field_value = next(iter(fields.values()))
+                return _q(field_value[0] if field_value else "")
+            return self.expr.from_block(value)
+        return _q(value)
+
     def _gen_script(self, hat_id, hat_block, op) -> list[str] | None:
         r = self.resolver
 
@@ -937,6 +1000,32 @@ class TargetDecompiler:
             header = f'onBroadcastReceived("{msg}") {{'
         elif op == "control_start_as_clone":
             header = "onCloneCreated {"
+        elif op.startswith(("makeymakey_", "microbit_", "ev3_", "boost_", "wedo2_", "gdxfor_")):
+            # Bekannte Extension-Hats erhalten ihre native Scrape-Schreibweise;
+            # unbekannte offizielle Hats bleiben über onExtensionHat verlustarm.
+            hat_names = {
+                "makeymakey_whenMakeyKeyPressed": "onMakeyKeyPressed",
+                "makeymakey_whenCodePressed": "onMakeyCodePressed",
+                "microbit_whenButtonPressed": "onMicrobitButtonPressed",
+                "microbit_whenGesture": "onMicrobitGesture",
+                "microbit_whenTilted": "onMicrobitTilted",
+                "microbit_whenPinConnected": "onMicrobitPinConnected",
+                "ev3_whenButtonPressed": "onEv3ButtonPressed",
+                "ev3_whenDistanceLessThan": "onEv3DistanceLessThan",
+                "ev3_whenBrightnessLessThan": "onEv3BrightnessLessThan",
+                "boost_whenColor": "onBoostColor", "boost_whenTilted": "onBoostTilted",
+                "wedo2_whenDistance": "onWedoDistance", "wedo2_whenTilted": "onWedoTilted",
+                "gdxfor_whenGesture": "onGdxGesture", "gdxfor_whenForcePushedOrPulled": "onGdxForce",
+                "gdxfor_whenTilted": "onGdxTilted",
+            }
+            if op in hat_names:
+                args = []
+                for key, val in hat_block.get("inputs", {}).items():
+                    args.append(self._raw_hat_arg(key, val))
+                header = f'{hat_names[op]}({", ".join(args)}) {{'
+            else:
+                raw = _raw_extension_call(r, self.expr, hat_block, "onExtensionHat")
+                header = f'{raw} {{'
         else:
             body = []
             if hat_block.get("next"):
@@ -1061,27 +1150,44 @@ def watch_mode(src_path: Path, out_path: Path):
 
 def print_help():
     print("""
-Detranspiler.py  v1.3
+Detranspiler.py  v2.1
 ────────────────────────────────────────────────────────
 VERWENDUNG:
   python detranspiler.py <eingabe.sb3> [Optionen]
 
 OPTIONEN:
-  --output <datei.scrape>   Ausgabedatei (Standard: output.scrape)
+  --setting <datei.json>    Projekt-Settings laden (--settings als Alias)
+  --output, --out <datei>   Ausgabedatei (Standard: output.scrape)
   --watch                    Watch-Modus: detranspiliert bei Dateiänderung neu
-  --help                     Diese Hilfe anzeigen
+  --no-watch                 Watch-Modus deaktivieren (überschreibt Settings)
+  --help, -h                 Diese Hilfe anzeigen
+
+SETTINGS-DATEI:
+  JSON-Datei mit Standardwerten für Parameter, z.B.:
+  {
+    "output": "build/spiel.scrape",
+    "watch": true
+  }
+
+  Unterstützte Schlüssel: input, output, watch.
+  Kommandozeilenparameter überschreiben Werte aus der Settingsdatei.
+  Relative Pfade in der Settingsdatei beziehen sich auf deren Speicherort.
+  Relative Pfade in der Kommandozeile beziehen sich auf das aktuelle Verzeichnis.
+  .. bedeutet jeweils: eine Verzeichnisebene nach oben.
 
 BEISPIELE:
   python detranspiler.py spiel.sb3
   python detranspiler.py spiel.sb3 --output spiel.scrape
-  python detranspiler.py spiel.sb3 --watch
-  python detranspiler.py spiel.sb3 --output meinspiel.scrape --watch
+  python detranspiler.py spiel.sb3 --setting ../projekt/settings.json
+  python detranspiler.py --setting ../settings.json spiel.sb3
+  python detranspiler.py spiel.sb3 --setting settings.json --output test.scrape
 
 ERWEITERUNGEN:
   Erweiterungsbefehle werden automatisch erkannt und als Scrape-Code ausgegeben.
-  Unterstützte Erweiterungen: Pen, Music, Video Sensing, Text2Speech, Translate.
-  Hardware-Erweiterungen (Microbit, EV3, Boost, WeDo, GDX FOR) werden als
-  /* opcode */ Kommentare ausgegeben.
+  Unterstützte Erweiterungen: Pen, Music, Video Sensing, Text2Speech, Translate,
+  Makey Makey, Microbit, EV3, Boost, WeDo 2.0 und GDX FOR. Nicht eingebaute
+  offizielle Erweiterungsblöcke werden über extensionBlock/Reporter/Boolean
+  bzw. onExtensionHat verlustarm ausgegeben.
 
 Identifier-Sanitisierung:
   Variablen- und Sprite-Namen die in Scratch gültig sind, aber ungültige
@@ -1091,40 +1197,127 @@ Identifier-Sanitisierung:
 """)
 
 
-# ═══════════════════════════════════════════════════════
-#  Main
-# ═══════════════════════════════════════════════════════
+def _resolve_path(value, base_dir: Path) -> Path:
+    """Löst absolute und relative Pfade einheitlich auf (inkl. '..')."""
+    path = Path(str(value)).expanduser()
+    if not path.is_absolute():
+        path = base_dir / path
+    return path.resolve()
+
+
+def _load_settings(settings_path: Path) -> dict:
+    """Lädt und validiert eine JSON-Settingsdatei."""
+    try:
+        with settings_path.open("r", encoding="utf-8") as f:
+            settings = json.load(f)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"Settingsdatei enthält ungültiges JSON ({exc.lineno}:{exc.colno}): {exc.msg}"
+        ) from exc
+    except OSError as exc:
+        raise ValueError(f"Settingsdatei kann nicht gelesen werden: {exc}") from exc
+
+    if not isinstance(settings, dict):
+        raise ValueError("Die Settingsdatei muss ein JSON-Objekt enthalten.")
+
+    allowed = {"Transpiler", "input", "output", "watch"}
+    unknown = set(settings) - allowed
+    if unknown:
+        raise ValueError("Unbekannte Settings-Schlüssel: " + ", ".join(sorted(unknown)))
+    if "Transpiler" in settings and settings["Transpiler"] not in ("Transpiler", "Detranspiler"):
+        raise ValueError('"Transpiler" muss entweder "Transpiler" oder "Detranspiler" sein.')
+    for key in ("input", "output"):
+        if key in settings and not isinstance(settings[key], str):
+            raise ValueError(f'Der Settings-Wert "{key}" muss ein Pfad-String sein.')
+    if "watch" in settings and not isinstance(settings["watch"], bool):
+        raise ValueError('Der Settings-Wert "watch" muss true oder false sein.')
+    return settings
+
 
 def main():
-    sys.stdout.reconfigure(encoding="utf-8")
-    args    = sys.argv[1:]
-    infile  = None
-    outfile = "output.scrape"
-    watch   = False
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    args = sys.argv[1:]
+    infile_arg = None
+    outfile_arg = None
+    settings_arg = None
+    watch_arg = None
 
     i = 0
     while i < len(args):
         a = args[i]
-        if a in ("--output", "--out") and i + 1 < len(args):
-            outfile = args[i + 1]; i += 2
+        if a in ("--setting", "--settings"):
+            if i + 1 >= len(args):
+                print(f"Fehler: Nach {a} muss ein Dateipfad folgen.")
+                sys.exit(1)
+            settings_arg = args[i + 1]
+            i += 2
+        elif a in ("--output", "--out"):
+            if i + 1 >= len(args):
+                print(f"Fehler: Nach {a} muss ein Dateipfad folgen.")
+                sys.exit(1)
+            outfile_arg = args[i + 1]
+            i += 2
         elif a == "--watch":
-            watch = True; i += 1
+            watch_arg = True
+            i += 1
+        elif a == "--no-watch":
+            watch_arg = False
+            i += 1
         elif a in ("--help", "-h"):
-            print_help(); sys.exit(0)
+            print_help()
+            sys.exit(0)
+        elif a.startswith("-"):
+            print(f"Fehler: Unbekannter Parameter: {a}")
+            print_help()
+            sys.exit(1)
         else:
-            infile = a; i += 1
+            if infile_arg is not None:
+                print(f"Fehler: Mehrere Eingabedateien angegeben: {infile_arg}, {a}")
+                sys.exit(1)
+            infile_arg = a
+            i += 1
 
-    if not infile:
-        print("Fehler: Kein Eingabefile angegeben.")
-        print_help(); sys.exit(1)
+    cwd = Path.cwd()
+    settings = {}
+    settings_path = None
+    if settings_arg is not None:
+        settings_path = _resolve_path(settings_arg, cwd)
+        try:
+            settings = _load_settings(settings_path)
+        except ValueError as exc:
+            print(f"Fehler: {exc}")
+            sys.exit(1)
+        print(f"Settings: {settings_path}")
 
-    src_path = Path(infile).resolve()
+    # Kommandozeile hat Vorrang vor der Settingsdatei.
+    input_value = infile_arg if infile_arg is not None else settings.get("input")
+    output_value = outfile_arg if outfile_arg is not None else settings.get("output", "output.scrape")
+    watch = watch_arg if watch_arg is not None else settings.get("watch", False)
+
+    if not input_value:
+        print("Fehler: Keine Eingabedatei angegeben (weder als Argument noch in den Settings).")
+        print_help()
+        sys.exit(1)
+
+    # Pfade aus Settings relativ zum Speicherort der Settingsdatei auflösen.
+    # Direkt eingegebene CLI-Pfade bleiben relativ zum aktuellen Arbeitsordner.
+    settings_dir = settings_path.parent if settings_path else cwd
+    src_base = cwd if infile_arg is not None else settings_dir
+    out_base = cwd if outfile_arg is not None else settings_dir
+    src_path = _resolve_path(input_value, src_base)
+    out_path = _resolve_path(output_value, out_base)
+
     if not src_path.exists():
-        print(f"Fehler: Datei nicht gefunden: {src_path}"); sys.exit(1)
+        print(f"Fehler: Datei nicht gefunden: {src_path}")
+        sys.exit(1)
+    if not src_path.is_file():
+        print(f"Fehler: Eingabepfad ist keine Datei: {src_path}")
+        sys.exit(1)
 
-    out_path = Path(outfile).resolve()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     print(f"Lese: {src_path}")
-
     if watch:
         try:
             watch_mode(src_path, out_path)

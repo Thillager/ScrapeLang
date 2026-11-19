@@ -3021,6 +3021,44 @@ def build_project(ast: dict, asset_mgr: AssetManager) -> dict:
             "draggable":False,"rotationStyle":"all around",
         })
 
+    # Public-Variablen abschließend projektweit normalisieren. Die Generatoren
+    # können beim ersten Zugriff eines anderen Sprites bereits lokale IDs
+    # angelegt haben (z.B. bei Movement++/Movement--). Deshalb werden ALLE
+    # Variablenfelder der Blöcke anhand der vorab gesammelten Deklarationen
+    # auf die kanonische Public-ID umgeschrieben.
+    if targets:
+        stage_target = next((t for t in targets if t.get("isStage")), targets[0])
+        canonical_public = dict(public_variables)
+
+        # Public-Variablen gehören ausschließlich in das Stage-Register.
+        # Referenzen aus anderen Sprites dürfen dort keine zusätzlichen IDs
+        # mit demselben Namen erzeugen.
+        for vid, entry in list(stage_target.get("variables", {}).items()):
+            if isinstance(entry, list) and entry and entry[0] in canonical_public:
+                stage_target["variables"].pop(vid, None)
+        for name, vid in canonical_public.items():
+            stage_target.setdefault("variables", {})[vid] = [name, 0]
+
+        for target in targets:
+            for block in target.get("blocks", {}).values():
+                field = (block.get("fields") or {}).get("VARIABLE")
+                if not isinstance(field, list) or not field:
+                    continue
+                name = field[0]
+                if name in canonical_public:
+                    # Ein explizit private deklariertes gleichnamiges Sprite-
+                    # Variable darf nicht auf die globale ID umgebogen werden.
+                    # Solche Deklarationen sind in target['variables'] lokal
+                    # vorhanden; ihre ID wird daher beibehalten.
+                    current_id = field[1] if len(field) > 1 else None
+                    is_local_private = (
+                        not target.get("isStage")
+                        and current_id in (target.get("variables") or {})
+                        and (target["variables"][current_id][0] == name)
+                    )
+                    if not is_local_private:
+                        field[1] = canonical_public[name]
+
     targets[0]["broadcasts"] = {bid:name for name,bid in all_broadcasts.items()}
     # Zusätzliche Integritätsprüfung: Broadcast-IDs über alle Targets angleichen.
     _normalize_project_broadcasts(targets)

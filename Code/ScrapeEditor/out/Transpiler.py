@@ -1022,8 +1022,9 @@ class Parser:
                                 display = mod
                     nv = self.peek()[1]
                     if nv == "var":
-                        scope = scope or "public"
-                        display = display or "shown"
+                        # Ohne Modifier sind Variablen standardmäßig privat und verborgen.
+                        scope = scope or "private"
+                        display = display or "hidden"
                         decl = self.parse_var_decl()
                         decl["scope"] = scope
                         decl["display"] = display
@@ -2128,7 +2129,13 @@ class BlockGenerator:
         return [2, child_id]
 
     def _var_id(self, n):
-        if n not in self.variables: self.variables[n] = new_id()
+        # Public variables use one project-wide Scratch ID on every target.
+        # Private declarations remain local to their owning sprite.
+        if self._var_scope.get(n) != "private" and n in self.public_variables:
+            self.variables[n] = self.public_variables[n]
+            return self.public_variables[n]
+        if n not in self.variables:
+            self.variables[n] = new_id()
         return self.variables[n]
 
     def _list_id(self, n):
@@ -2287,17 +2294,20 @@ class BlockGenerator:
         if t == "VarDecl":
             inp      = self._input(node["value"], bid) if node["value"] else [1,[10,""]]
             var_name = node["name"]
-            scope    = node.get("scope",   "public")
-            display  = node.get("display", "shown")
+            scope    = node.get("scope",   "private")
+            display  = node.get("display", "hidden")
             self._var_scope[var_name] = scope
             self._add(bid, "data_setvariableto", parent_id, next_id,
                 inputs={"VALUE": inp},
                 fields={"VARIABLE": [var_name, self._var_id(var_name)]})
-            if display == "hidden":
-                hide_id = new_id()
-                self._add(hide_id, "data_hidevariable", bid, next_id,
-                    fields={"VARIABLE": [var_name, self._var_id(var_name)]})
-                self.blocks[bid]["next"] = hide_id
+            # Scratch/TurboWarp-Variablenmonitore werden über dieselben
+            # show/hide-Blöcke gesteuert wie bei showVar()/hideVar().
+            visibility_id = new_id()
+            visibility_opcode = ("data_showvariable" if display == "shown"
+                                 else "data_hidevariable")
+            self._add(visibility_id, visibility_opcode, bid, next_id,
+                fields={"VARIABLE": [var_name, self._var_id(var_name)]})
+            self.blocks[bid]["next"] = visibility_id
             return bid
         if t == "VarSet":
             self._add(bid, "data_setvariableto", parent_id, next_id,
@@ -2805,8 +2815,10 @@ class BlockGenerator:
         self.blocks[hat_id]["next"] = first
         return hat_id
 
-    def gen_target(self, target_node, broadcast_registry: dict | None = None):
+    def gen_target(self, target_node, broadcast_registry: dict | None = None,
+                   public_variable_registry: dict | None = None):
         self.blocks = {}; self.variables = {}; self.lists = {}
+        self.public_variables = public_variable_registry if public_variable_registry is not None else {}
         # Broadcast-Nachrichten sind projektweit, nicht Sprite-lokal.
         # build_project übergibt allen Targets dieselbe Registry, damit Sender
         # und Empfänger für denselben Nachrichtennamen dieselbe Scratch-ID nutzen.
@@ -2932,12 +2944,30 @@ def _normalize_project_broadcasts(targets: list[dict]) -> dict[str, str]:
 def build_project(ast: dict, asset_mgr: AssetManager) -> dict:
     gen = BlockGenerator(); targets = []; all_broadcasts = {}
 
+    # Resolve public declarations before generating any target. Otherwise a
+    # reference encountered in Sprite B before/without its declaration there
+    # gets a fresh sprite-local ID instead of the declaring sprite's ID.
+    public_variables: dict[str, str] = {}
+
+    def collect_public_declarations(value):
+        if isinstance(value, dict):
+            if value.get("type") == "VarDecl" and value.get("scope", "public") != "private":
+                public_variables.setdefault(value["name"], new_id())
+            for child in value.values():
+                collect_public_declarations(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect_public_declarations(child)
+
+    collect_public_declarations(ast.get("targets", []))
+
     stage_node = next((t for t in ast["targets"] if t["type"]=="Stage"), None)
     stage_blocks, stage_vars, stage_lists, stage_comments = {}, {}, {}, {}
     if stage_node:
         print(f"  Stage '{stage_node['name']}':")
         stage_blocks, stage_vars, stage_lists, bcast, _, stage_comments = gen.gen_target(
-            stage_node, broadcast_registry=all_broadcasts)
+            stage_node, broadcast_registry=all_broadcasts,
+            public_variable_registry=public_variables)
         all_broadcasts.update(bcast)
         backdrops = []
         for bd in stage_node.get("backdrops",[]):
@@ -2961,7 +2991,8 @@ def build_project(ast: dict, asset_mgr: AssetManager) -> dict:
     for i, snode in enumerate([t for t in ast["targets"] if t["type"]=="Sprite"]):
         print(f"  Sprite '{snode['name']}':")
         blocks, variables, lists, bcast, var_scope, sprite_comments = gen.gen_target(
-            snode, broadcast_registry=all_broadcasts)
+            snode, broadcast_registry=all_broadcasts,
+            public_variable_registry=public_variables)
         all_broadcasts.update(bcast)
 
         sprite_vars = {}
@@ -2989,6 +3020,44 @@ def build_project(ast: dict, asset_mgr: AssetManager) -> dict:
             "visible":True,"x":0,"y":0,"size":100,"direction":90,
             "draggable":False,"rotationStyle":"all around",
         })
+
+    # Public-Variablen abschließend projektweit normalisieren. Die Generatoren
+    # können beim ersten Zugriff eines anderen Sprites bereits lokale IDs
+    # angelegt haben (z.B. bei Movement++/Movement--). Deshalb werden ALLE
+    # Variablenfelder der Blöcke anhand der vorab gesammelten Deklarationen
+    # auf die kanonische Public-ID umgeschrieben.
+    if targets:
+        stage_target = next((t for t in targets if t.get("isStage")), targets[0])
+        canonical_public = dict(public_variables)
+
+        # Public-Variablen gehören ausschließlich in das Stage-Register.
+        # Referenzen aus anderen Sprites dürfen dort keine zusätzlichen IDs
+        # mit demselben Namen erzeugen.
+        for vid, entry in list(stage_target.get("variables", {}).items()):
+            if isinstance(entry, list) and entry and entry[0] in canonical_public:
+                stage_target["variables"].pop(vid, None)
+        for name, vid in canonical_public.items():
+            stage_target.setdefault("variables", {})[vid] = [name, 0]
+
+        for target in targets:
+            for block in target.get("blocks", {}).values():
+                field = (block.get("fields") or {}).get("VARIABLE")
+                if not isinstance(field, list) or not field:
+                    continue
+                name = field[0]
+                if name in canonical_public:
+                    # Ein explizit private deklariertes gleichnamiges Sprite-
+                    # Variable darf nicht auf die globale ID umgebogen werden.
+                    # Solche Deklarationen sind in target['variables'] lokal
+                    # vorhanden; ihre ID wird daher beibehalten.
+                    current_id = field[1] if len(field) > 1 else None
+                    is_local_private = (
+                        not target.get("isStage")
+                        and current_id in (target.get("variables") or {})
+                        and (target["variables"][current_id][0] == name)
+                    )
+                    if not is_local_private:
+                        field[1] = canonical_public[name]
 
     targets[0]["broadcasts"] = {bid:name for name,bid in all_broadcasts.items()}
     # Zusätzliche Integritätsprüfung: Broadcast-IDs über alle Targets angleichen.
@@ -3747,62 +3816,172 @@ NICHT IN DER SIGNATURTABELLE ENTHALTENE OFFIZIELLE BLÖCKE:
 
 BEISPIELE:
   python transpiler.py spiel.scrape
+  python transpiler.py --setting ../settings.json
   python transpiler.py spiel.scrape --out spiel.sb3
   python transpiler.py spiel.scrape --watch --turbowarp-replace
 """)
 
 
+def _resolve_cli_path(value, base_dir: Path) -> Path:
+    path = Path(str(value)).expanduser()
+    if not path.is_absolute():
+        path = base_dir / path
+    return path.resolve()
+
+
+def _read_project_settings(path: Path) -> dict:
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"Settingsdatei enthält ungültiges JSON ({exc.lineno}:{exc.colno}): {exc.msg}"
+        ) from exc
+    except OSError as exc:
+        raise ValueError(f"Settingsdatei kann nicht gelesen werden: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError("Die Settingsdatei muss ein JSON-Objekt enthalten.")
+    allowed = {"Transpiler", "input", "output", "watch", "app"}
+    unknown = set(data) - allowed
+    if unknown:
+        raise ValueError("Unbekannte Settings-Schlüssel: " + ", ".join(sorted(unknown)))
+    if "Transpiler" in data and data["Transpiler"] not in ("Transpiler", "Detranspiler"):
+        raise ValueError('"Transpiler" muss entweder "Transpiler" oder "Detranspiler" sein.')
+    for key in ("input", "output", "app"):
+        if key in data and not isinstance(data[key], str):
+            raise ValueError(f'Der Settings-Wert "{key}" muss ein String sein.')
+    if "watch" in data and not isinstance(data["watch"], bool):
+        raise ValueError('Der Settings-Wert "watch" muss true oder false sein.')
+    return data
+
+
 def main():
-    sys.stdout.reconfigure(encoding="utf-8")
-    args     = sys.argv[1:]
-    infile   = None
-    outfile  = "output.sb3"
-    app_mode = None
-    watch    = False
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    args = sys.argv[1:]
+    cwd = Path.cwd()
+    settings_arg = None
+    # --setting/--settings wird vor der eigentlichen Argumentauswertung entfernt.
+    filtered = []
     i = 0
     while i < len(args):
-        a = args[i]
-        if a == "--out" and i+1 < len(args):
-            outfile = args[i+1]; i += 2
+        if args[i] in ("--setting", "--settings"):
+            if i + 1 >= len(args):
+                print(f"Fehler: Nach {args[i]} muss ein Dateipfad folgen.")
+                sys.exit(1)
+            settings_arg = args[i + 1]
+            i += 2
+        else:
+            filtered.append(args[i])
+            i += 1
+
+    # Ohne explizite Angabe wird eine settings.json im aktuellen Ordner verwendet.
+    settings_path = _resolve_cli_path(settings_arg, cwd) if settings_arg else (cwd / "settings.json")
+    settings = {}
+    if settings_path.is_file():
+        try:
+            settings = _read_project_settings(settings_path)
+        except ValueError as exc:
+            print(f"Fehler: {exc}")
+            sys.exit(1)
+        print(f"Settings: {settings_path}")
+    elif settings_arg:
+        print(f"Fehler: Settingsdatei nicht gefunden: {settings_path}")
+        sys.exit(1)
+
+    # Die Settingsdatei kann denselben Einstiegspunkt für beide Richtungen wählen.
+    selected_tool = settings.get("Transpiler", "Transpiler")
+    if selected_tool == "Detranspiler":
+        candidates = [Path(__file__).resolve().with_name("Detranspiler_v2.py"),
+                      Path(__file__).resolve().with_name("Detranspiler.py")]
+        detranspiler = next((p for p in candidates if p.is_file()), None)
+        if detranspiler is None:
+            print("Fehler: Transpiler ist auf Detranspiler gestellt, aber Detranspiler_v2.py/Detranspiler.py liegt nicht neben dem Transpiler.")
+            sys.exit(1)
+        cmd = [sys.executable, str(detranspiler)]
+        if settings_path.is_file():
+            cmd += ["--setting", str(settings_path)]
+        cmd += filtered
+        raise SystemExit(subprocess.call(cmd, cwd=str(cwd)))
+
+    infile = None
+    outfile = settings.get("output", "output.sb3")
+    app_mode = None
+    watch = settings.get("watch", False)
+    app_setting = settings.get("app")
+    app_map = {
+        "turbowarp-new": ("turbowarp", "new"),
+        "turbowarp-replace": ("turbowarp", "replace"),
+        "scratch-new": ("scratch", "new"),
+        "scratch-replace": ("scratch", "replace"),
+    }
+    if app_setting is not None:
+        if app_setting not in app_map:
+            print('Fehler: \"app\" muss turbowarp-new, turbowarp-replace, scratch-new oder scratch-replace sein.')
+            sys.exit(1)
+        app_mode = app_map[app_setting]
+
+    # Kommandozeilenargumente überschreiben Settingswerte.
+    cli_infile = None
+    cli_outfile = None
+    cli_watch = None
+    i = 0
+    while i < len(filtered):
+        a = filtered[i]
+        if a == "--out" and i + 1 < len(filtered):
+            cli_outfile = filtered[i + 1]; i += 2
         elif a == "--turbowarp-new":
-            if app_mode: print("⚠  Mehrere App-Flags angegeben – letztes gewinnt.")
             app_mode = ("turbowarp", "new"); i += 1
         elif a == "--turbowarp-replace":
-            if app_mode: print("⚠  Mehrere App-Flags angegeben – letztes gewinnt.")
             app_mode = ("turbowarp", "replace"); i += 1
         elif a == "--scratch-new":
-            if app_mode: print("⚠  Mehrere App-Flags angegeben – letztes gewinnt.")
             app_mode = ("scratch", "new"); i += 1
         elif a == "--scratch-replace":
-            if app_mode: print("⚠  Mehrere App-Flags angegeben – letztes gewinnt.")
             app_mode = ("scratch", "replace"); i += 1
         elif a == "--watch":
-            watch = True; i += 1
+            cli_watch = True; i += 1
+        elif a == "--no-watch":
+            cli_watch = False; i += 1
         elif a in ("--help", "-h"):
             print_help(); sys.exit(0)
+        elif a.startswith("-"):
+            print(f"Fehler: Unbekannter Parameter: {a}"); print_help(); sys.exit(1)
         else:
-            infile = a; i += 1
+            if cli_infile is not None:
+                print(f"Fehler: Mehrere Eingabedateien angegeben: {cli_infile}, {a}"); sys.exit(1)
+            cli_infile = a; i += 1
 
-    if not infile:
-        print("Fehler: Kein Eingabefile angegeben.")
+    if cli_infile is not None:
+        infile = _resolve_cli_path(cli_infile, cwd)
+    elif settings.get("input"):
+        infile = _resolve_cli_path(settings["input"], settings_path.parent if settings_path.is_file() else cwd)
+    if cli_outfile is not None:
+        outfile_path = _resolve_cli_path(cli_outfile, cwd)
+    else:
+        outfile_path = _resolve_cli_path(outfile, settings_path.parent if settings_path.is_file() else cwd)
+    if cli_watch is not None:
+        watch = cli_watch
+
+    if infile is None:
+        print("Fehler: Kein Eingabefile angegeben (weder als Argument noch in den Settings).")
         print_help(); sys.exit(1)
+    if not infile.exists():
+        print(f"Fehler: Datei nicht gefunden: {infile}"); sys.exit(1)
 
-    src_path = Path(infile).resolve()
-    if not src_path.exists():
-        print(f"Fehler: Datei nicht gefunden: {src_path}"); sys.exit(1)
-
+    outfile_path.parent.mkdir(parents=True, exist_ok=True)
     if watch:
         try:
-            watch_mode(src_path, outfile, app_mode)
+            watch_mode(infile, str(outfile_path), app_mode)
         except KeyboardInterrupt:
             print("\n👋  Watch-Modus beendet.")
         return
 
-    source    = src_path.read_text(encoding="utf-8")
-    base_dir  = src_path.parent
+    source = infile.read_text(encoding="utf-8")
+    base_dir = infile.parent
     asset_mgr = AssetManager(base_dir)
-    print(f"Lese: {src_path}")
-    success = compile_once(source, base_dir, outfile, asset_mgr)
+    print(f"Lese: {infile}")
+    success = compile_once(source, base_dir, str(outfile_path), asset_mgr)
     if not success:
         sys.exit(1)
 
@@ -3810,11 +3989,11 @@ def main():
         app, mode = app_mode
         label = APP_PROFILES[app]["label"]
         print(f"── [5] {label} ───────────────────────────")
-        launch_app(outfile, app=app, replace=(mode=="replace"))
+        launch_app(str(outfile_path), app=app, replace=(mode == "replace"))
 
     print("\n── Fertig! ─────────────────────────────────")
     if not app_mode:
-        print(f"   Öffne {outfile} in TurboWarp oder dem Desktop-Player.")
+        print(f"   Öffne {outfile_path} in TurboWarp oder dem Desktop-Player.")
 
 
 if __name__ == "__main__":
