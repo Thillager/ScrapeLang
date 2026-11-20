@@ -1,0 +1,3896 @@
+{
+  "targets": [
+    {
+      "isStage": true,
+      "name": "Stage",
+      "variables": {
+        "f0cdd345de59489cbd55": [
+          "Leben",
+          0
+        ],
+        "752ee83d33664dc4b8a3": [
+          "Movement",
+          0
+        ],
+        "8f08a488f38b46cd9054": [
+          "velocityY",
+          0
+        ],
+        "da25048462ed47e097f0": [
+          "grounded",
+          0
+        ],
+        "e330832802534d50ac5f": [
+          "fertigeBloecke",
+          0
+        ],
+        "49ec3f72398d4e0f8fd0": [
+          "Level",
+          0
+        ]
+      },
+      "lists": {},
+      "broadcasts": {
+        "96b522f3d7ae403593b4": "MouseReady",
+        "4989623ce16f456782d0": "Vernichtung",
+        "6544bf9a226f410e9d57": "NextLevel",
+        "b7d04f1ee2774b729abd": "Built"
+      },
+      "blocks": {},
+      "comments": {},
+      "currentCostume": 0,
+      "costumes": [
+        {
+          "assetId": "92968ac16b2f0c3f7835a6dacd172c7b",
+          "name": "Forest",
+          "bitmapResolution": 2,
+          "md5ext": "92968ac16b2f0c3f7835a6dacd172c7b.png",
+          "dataFormat": "png",
+          "rotationCenterX": 480,
+          "rotationCenterY": 360
+        }
+      ],
+      "sounds": [],
+      "layerOrder": 0,
+      "tempo": 60,
+      "volume": 100,
+      "videoTransparency": 50,
+      "videoState": "on",
+      "textToSpeechLanguage": null
+    },
+    {
+      "isStage": false,
+      "name": "Mouse",
+      "variables": {},
+      "lists": {},
+      "broadcasts": {},
+      "blocks": {
+        "7aaa95fcb2b74201a740": {
+          "opcode": "event_whenflagclicked",
+          "next": "9b3dcc56c1364d178a4b",
+          "parent": null,
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": true,
+          "x": 0,
+          "y": 0
+        },
+        "c3610c004ec347568154": {
+          "opcode": "motion_goto_menu",
+          "next": null,
+          "parent": "9603d749817a41aca909",
+          "inputs": {},
+          "fields": {
+            "TO": [
+              "MouseHitbox",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "9603d749817a41aca909": {
+          "opcode": "motion_goto",
+          "next": null,
+          "parent": "9b3dcc56c1364d178a4b",
+          "inputs": {
+            "TO": [
+              1,
+              "c3610c004ec347568154"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "9b3dcc56c1364d178a4b": {
+          "opcode": "control_forever",
+          "next": null,
+          "parent": "7aaa95fcb2b74201a740",
+          "inputs": {
+            "SUBSTACK": [
+              2,
+              "9603d749817a41aca909"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "810323c07a30401582be": {
+          "opcode": "event_whenflagclicked",
+          "next": "b5b8ae6bffdf47fe9b23",
+          "parent": null,
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": true,
+          "x": 300,
+          "y": 0
+        },
+        "2e659c3319f14b14be80": {
+          "opcode": "sensing_keyoptions",
+          "next": null,
+          "parent": "688a7c5b990e46ad8266",
+          "inputs": {},
+          "fields": {
+            "KEY_OPTION": [
+              "d",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "688a7c5b990e46ad8266": {
+          "opcode": "sensing_keypressed",
+          "next": null,
+          "parent": "a2960156c8834e25add8",
+          "inputs": {
+            "KEY_OPTION": [
+              1,
+              "2e659c3319f14b14be80"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "d5087ea2a3064a24920a": {
+          "opcode": "motion_pointindirection",
+          "next": null,
+          "parent": "a2960156c8834e25add8",
+          "inputs": {
+            "DIRECTION": [
+              1,
+              [
+                4,
+                "90"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "a2960156c8834e25add8": {
+          "opcode": "control_if",
+          "next": "63d19c17a3334c1ea540",
+          "parent": "b5b8ae6bffdf47fe9b23",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "688a7c5b990e46ad8266"
+            ],
+            "SUBSTACK": [
+              2,
+              "d5087ea2a3064a24920a"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "71d427ebc1244ad3a238": {
+          "opcode": "sensing_keyoptions",
+          "next": null,
+          "parent": "414c21b6f0b743558f43",
+          "inputs": {},
+          "fields": {
+            "KEY_OPTION": [
+              "a",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "414c21b6f0b743558f43": {
+          "opcode": "sensing_keypressed",
+          "next": null,
+          "parent": "63d19c17a3334c1ea540",
+          "inputs": {
+            "KEY_OPTION": [
+              1,
+              "71d427ebc1244ad3a238"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "4596e8f1a2ed4be2b703": {
+          "opcode": "motion_pointindirection",
+          "next": null,
+          "parent": "63d19c17a3334c1ea540",
+          "inputs": {
+            "DIRECTION": [
+              1,
+              [
+                4,
+                "270"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "63d19c17a3334c1ea540": {
+          "opcode": "control_if",
+          "next": "69cdbf79072648a28104",
+          "parent": "a2960156c8834e25add8",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "414c21b6f0b743558f43"
+            ],
+            "SUBSTACK": [
+              2,
+              "4596e8f1a2ed4be2b703"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "2522befe1e1d49599c3b": {
+          "opcode": "sensing_keyoptions",
+          "next": null,
+          "parent": "360830a0c323491ebd57",
+          "inputs": {},
+          "fields": {
+            "KEY_OPTION": [
+              "a",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "360830a0c323491ebd57": {
+          "opcode": "sensing_keypressed",
+          "next": null,
+          "parent": "861b047bb850453ba28a",
+          "inputs": {
+            "KEY_OPTION": [
+              1,
+              "2522befe1e1d49599c3b"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "e08129b12eaa44c8aadc": {
+          "opcode": "sensing_keyoptions",
+          "next": null,
+          "parent": "66883a4bda2f43d7ab95",
+          "inputs": {},
+          "fields": {
+            "KEY_OPTION": [
+              "d",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "66883a4bda2f43d7ab95": {
+          "opcode": "sensing_keypressed",
+          "next": null,
+          "parent": "861b047bb850453ba28a",
+          "inputs": {
+            "KEY_OPTION": [
+              1,
+              "e08129b12eaa44c8aadc"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "861b047bb850453ba28a": {
+          "opcode": "operator_or",
+          "next": null,
+          "parent": "69cdbf79072648a28104",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "360830a0c323491ebd57"
+            ],
+            "OPERAND2": [
+              2,
+              "66883a4bda2f43d7ab95"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "e2de5867dc054e3b9a41": {
+          "opcode": "looks_costume",
+          "next": null,
+          "parent": "7acdfd3211f645fa9c6e",
+          "inputs": {},
+          "fields": {
+            "COSTUME": [
+              "Mouse1-a",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "b8e73cee232f4deea589": {
+          "opcode": "control_wait",
+          "next": "2a7800a3bd694b48a302",
+          "parent": "7acdfd3211f645fa9c6e",
+          "inputs": {
+            "DURATION": [
+              1,
+              [
+                4,
+                "0.01"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "bf472f2d6fd948c7885a": {
+          "opcode": "looks_costume",
+          "next": null,
+          "parent": "2a7800a3bd694b48a302",
+          "inputs": {},
+          "fields": {
+            "COSTUME": [
+              "Mouse1-b",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "2a7800a3bd694b48a302": {
+          "opcode": "looks_switchcostumeto",
+          "next": "efe539a11fe143f3ba82",
+          "parent": "b8e73cee232f4deea589",
+          "inputs": {
+            "COSTUME": [
+              1,
+              "bf472f2d6fd948c7885a"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "efe539a11fe143f3ba82": {
+          "opcode": "control_wait",
+          "next": null,
+          "parent": "2a7800a3bd694b48a302",
+          "inputs": {
+            "DURATION": [
+              1,
+              [
+                4,
+                "0.01"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "7acdfd3211f645fa9c6e": {
+          "opcode": "looks_switchcostumeto",
+          "next": "b8e73cee232f4deea589",
+          "parent": "69cdbf79072648a28104",
+          "inputs": {
+            "COSTUME": [
+              1,
+              "e2de5867dc054e3b9a41"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "69cdbf79072648a28104": {
+          "opcode": "control_if",
+          "next": null,
+          "parent": "63d19c17a3334c1ea540",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "861b047bb850453ba28a"
+            ],
+            "SUBSTACK": [
+              2,
+              "7acdfd3211f645fa9c6e"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b5b8ae6bffdf47fe9b23": {
+          "opcode": "control_forever",
+          "next": null,
+          "parent": "810323c07a30401582be",
+          "inputs": {
+            "SUBSTACK": [
+              2,
+              "a2960156c8834e25add8"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        }
+      },
+      "comments": {},
+      "currentCostume": 0,
+      "costumes": [
+        {
+          "assetId": "c5f76b65e30075c12d49ea8a8f7d6bad",
+          "name": "Mouse1-a",
+          "bitmapResolution": 1,
+          "md5ext": "c5f76b65e30075c12d49ea8a8f7d6bad.svg",
+          "dataFormat": "svg",
+          "rotationCenterX": 50,
+          "rotationCenterY": 27
+        },
+        {
+          "assetId": "8a7da35c473972f88896ca73b7df2188",
+          "name": "Mouse1-b",
+          "bitmapResolution": 1,
+          "md5ext": "8a7da35c473972f88896ca73b7df2188.svg",
+          "dataFormat": "svg",
+          "rotationCenterX": 65,
+          "rotationCenterY": 21
+        }
+      ],
+      "sounds": [],
+      "layerOrder": 1,
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "size": 100,
+      "direction": 90,
+      "draggable": false,
+      "rotationStyle": "all around"
+    },
+    {
+      "isStage": false,
+      "name": "MouseHitbox",
+      "variables": {
+        "12889dddbfbe4168a17c": [
+          "velocityY",
+          0
+        ],
+        "a37df927696b4366a15c": [
+          "grounded",
+          0
+        ]
+      },
+      "lists": {},
+      "broadcasts": {},
+      "blocks": {
+        "1ebaae3a7e3341a0833f": {
+          "opcode": "event_whenflagclicked",
+          "next": "f663778aeb8a4ce4aa4c",
+          "parent": null,
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": true,
+          "x": 0,
+          "y": 0
+        },
+        "75f90eb0236d4d9fb1f7": {
+          "opcode": "data_showvariable",
+          "next": null,
+          "parent": "f663778aeb8a4ce4aa4c",
+          "inputs": {},
+          "fields": {
+            "VARIABLE": [
+              "Leben",
+              "f0cdd345de59489cbd55"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "f663778aeb8a4ce4aa4c": {
+          "opcode": "data_setvariableto",
+          "next": "75f90eb0236d4d9fb1f7",
+          "parent": "1ebaae3a7e3341a0833f",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "3"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "Leben",
+              "f0cdd345de59489cbd55"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "dfc26479fc8446ef91a1": {
+          "opcode": "event_whenflagclicked",
+          "next": "8df8c374431f48069074",
+          "parent": null,
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": true,
+          "x": 300,
+          "y": 0
+        },
+        "6632826c539e4cbba1f2": {
+          "opcode": "data_hidevariable",
+          "next": null,
+          "parent": "8df8c374431f48069074",
+          "inputs": {},
+          "fields": {
+            "VARIABLE": [
+              "Movement",
+              "752ee83d33664dc4b8a3"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "8df8c374431f48069074": {
+          "opcode": "data_setvariableto",
+          "next": "6632826c539e4cbba1f2",
+          "parent": "dfc26479fc8446ef91a1",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "Movement",
+              "752ee83d33664dc4b8a3"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "ed34274ceab740a0be23": {
+          "opcode": "event_whenflagclicked",
+          "next": "10b1e9de761f419ba963",
+          "parent": null,
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": true,
+          "x": 600,
+          "y": 0
+        },
+        "10b1e9de761f419ba963": {
+          "opcode": "motion_gotoxy",
+          "next": "3e269f84da934edd9aa5",
+          "parent": "ed34274ceab740a0be23",
+          "inputs": {
+            "X": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ],
+            "Y": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "3e269f84da934edd9aa5": {
+          "opcode": "event_broadcast",
+          "next": "833cf2f9191c4877a9e3",
+          "parent": "10b1e9de761f419ba963",
+          "inputs": {
+            "BROADCAST_INPUT": [
+              1,
+              [
+                11,
+                "MouseReady",
+                "96b522f3d7ae403593b4"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "a884feda1c9b411ea3c6": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "a6284737f28d4cfe9d05",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "_edge_",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "a6284737f28d4cfe9d05": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "5a413e265bbb40aab04d",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "a884feda1c9b411ea3c6"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "35a99b62b4fc4397a968": {
+          "opcode": "event_broadcast",
+          "next": "d9ddf63f8d9547f6aa37",
+          "parent": "5a413e265bbb40aab04d",
+          "inputs": {
+            "BROADCAST_INPUT": [
+              1,
+              [
+                11,
+                "Vernichtung",
+                "4989623ce16f456782d0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "d9ddf63f8d9547f6aa37": {
+          "opcode": "event_broadcast",
+          "next": "b6226bc0184a4bb29a52",
+          "parent": "35a99b62b4fc4397a968",
+          "inputs": {
+            "BROADCAST_INPUT": [
+              1,
+              [
+                11,
+                "NextLevel",
+                "6544bf9a226f410e9d57"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b6226bc0184a4bb29a52": {
+          "opcode": "data_changevariableby",
+          "next": "1df4b398ba6e40dcb0b8",
+          "parent": "d9ddf63f8d9547f6aa37",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "-1"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "Leben",
+              "f0cdd345de59489cbd55"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "1df4b398ba6e40dcb0b8": {
+          "opcode": "data_changevariableby",
+          "next": "7b322354b767405a91f8",
+          "parent": "b6226bc0184a4bb29a52",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "-1"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "Movement",
+              "752ee83d33664dc4b8a3"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "7b322354b767405a91f8": {
+          "opcode": "data_changevariableby",
+          "next": null,
+          "parent": "1df4b398ba6e40dcb0b8",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "-1"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "Level",
+              "49ec3f72398d4e0f8fd0"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "5a413e265bbb40aab04d": {
+          "opcode": "control_if",
+          "next": "e07cfce15ee34741a973",
+          "parent": "833cf2f9191c4877a9e3",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "a6284737f28d4cfe9d05"
+            ],
+            "SUBSTACK": [
+              2,
+              "35a99b62b4fc4397a968"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "a547306fefc9489f9466": {
+          "opcode": "data_variable",
+          "next": null,
+          "parent": "2cea56ee0813443f97cb",
+          "inputs": {},
+          "fields": {
+            "VARIABLE": [
+              "Leben",
+              "f0cdd345de59489cbd55"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "2cea56ee0813443f97cb": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "e07cfce15ee34741a973",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "a547306fefc9489f9466"
+            ],
+            "OPERAND2": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "14c73e64f3a94aba86f8": {
+          "opcode": "control_stop",
+          "next": null,
+          "parent": "e07cfce15ee34741a973",
+          "inputs": {},
+          "fields": {
+            "STOP_OPTION": [
+              "all",
+              null
+            ]
+          },
+          "shadow": false,
+          "topLevel": false,
+          "mutation": {
+            "tagName": "mutation",
+            "children": [],
+            "hasnext": "false"
+          }
+        },
+        "e07cfce15ee34741a973": {
+          "opcode": "control_if",
+          "next": null,
+          "parent": "5a413e265bbb40aab04d",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "2cea56ee0813443f97cb"
+            ],
+            "SUBSTACK": [
+              2,
+              "14c73e64f3a94aba86f8"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "833cf2f9191c4877a9e3": {
+          "opcode": "control_forever",
+          "next": null,
+          "parent": "3e269f84da934edd9aa5",
+          "inputs": {
+            "SUBSTACK": [
+              2,
+              "5a413e265bbb40aab04d"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "56cc69a76906427b82fb": {
+          "opcode": "event_whenbroadcastreceived",
+          "next": "63284400163a451c835c",
+          "parent": null,
+          "inputs": {},
+          "fields": {
+            "BROADCAST_OPTION": [
+              "NextLevel",
+              "6544bf9a226f410e9d57"
+            ]
+          },
+          "shadow": false,
+          "topLevel": true,
+          "x": 900,
+          "y": 0
+        },
+        "63284400163a451c835c": {
+          "opcode": "motion_gotoxy",
+          "next": "30d6448bd38a4c3dbac3",
+          "parent": "56cc69a76906427b82fb",
+          "inputs": {
+            "X": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ],
+            "Y": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "30d6448bd38a4c3dbac3": {
+          "opcode": "event_broadcast",
+          "next": null,
+          "parent": "63284400163a451c835c",
+          "inputs": {
+            "BROADCAST_INPUT": [
+              1,
+              [
+                11,
+                "MouseReady",
+                "96b522f3d7ae403593b4"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "e614c3a2f2c14fcba7e2": {
+          "opcode": "event_whenbroadcastreceived",
+          "next": "b20fb5e51d9a4e9ca555",
+          "parent": null,
+          "inputs": {},
+          "fields": {
+            "BROADCAST_OPTION": [
+              "Built",
+              "b7d04f1ee2774b729abd"
+            ]
+          },
+          "shadow": false,
+          "topLevel": true,
+          "x": 1200,
+          "y": 0
+        },
+        "b20fb5e51d9a4e9ca555": {
+          "opcode": "looks_seteffectto",
+          "next": "7b7c96b23fb34d7aa4b1",
+          "parent": "e614c3a2f2c14fcba7e2",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "100"
+              ]
+            ]
+          },
+          "fields": {
+            "EFFECT": [
+              "GHOST",
+              null
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "395507a44a364f428fff": {
+          "opcode": "data_hidevariable",
+          "next": "ed808df7751a41258b94",
+          "parent": "7b7c96b23fb34d7aa4b1",
+          "inputs": {},
+          "fields": {
+            "VARIABLE": [
+              "velocityY",
+              "12889dddbfbe4168a17c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "7b7c96b23fb34d7aa4b1": {
+          "opcode": "data_setvariableto",
+          "next": "395507a44a364f428fff",
+          "parent": "b20fb5e51d9a4e9ca555",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "velocityY",
+              "12889dddbfbe4168a17c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "58ae947c42494e0cb0b5": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "ed808df7751a41258b94",
+          "inputs": {
+            "OPERAND1": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ],
+            "OPERAND2": [
+              1,
+              [
+                10,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b8f8516a2165494ba695": {
+          "opcode": "data_hidevariable",
+          "next": "44546274c05c417abcd2",
+          "parent": "ed808df7751a41258b94",
+          "inputs": {},
+          "fields": {
+            "VARIABLE": [
+              "grounded",
+              "a37df927696b4366a15c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "ed808df7751a41258b94": {
+          "opcode": "data_setvariableto",
+          "next": "b8f8516a2165494ba695",
+          "parent": "7b7c96b23fb34d7aa4b1",
+          "inputs": {
+            "VALUE": [
+              2,
+              "58ae947c42494e0cb0b5"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "grounded",
+              "a37df927696b4366a15c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "da47ae0b014f47089089": {
+          "opcode": "data_variable",
+          "next": null,
+          "parent": "c31629db0bbc4c44aeca",
+          "inputs": {},
+          "fields": {
+            "VARIABLE": [
+              "Movement",
+              "752ee83d33664dc4b8a3"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "c31629db0bbc4c44aeca": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "25139b7639954f84bffe",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "da47ae0b014f47089089"
+            ],
+            "OPERAND2": [
+              1,
+              [
+                4,
+                "1"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "f2a3769fcbdd470a9c46": {
+          "opcode": "sensing_keyoptions",
+          "next": null,
+          "parent": "9d75d4021e4746fd929f",
+          "inputs": {},
+          "fields": {
+            "KEY_OPTION": [
+              "a",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "9d75d4021e4746fd929f": {
+          "opcode": "sensing_keypressed",
+          "next": null,
+          "parent": "97027dd060574da9abb8",
+          "inputs": {
+            "KEY_OPTION": [
+              1,
+              "f2a3769fcbdd470a9c46"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "22253ae4e137448c9158": {
+          "opcode": "motion_pointindirection",
+          "next": "37766fad51824c609234",
+          "parent": "97027dd060574da9abb8",
+          "inputs": {
+            "DIRECTION": [
+              1,
+              [
+                4,
+                "270"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "78cb75b9d6d24821a69b": {
+          "opcode": "operator_subtract",
+          "next": null,
+          "parent": "37766fad51824c609234",
+          "inputs": {
+            "NUM1": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ],
+            "NUM2": [
+              1,
+              [
+                4,
+                "5"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "37766fad51824c609234": {
+          "opcode": "motion_changexby",
+          "next": "34b27e2dce924d95ad2e",
+          "parent": "22253ae4e137448c9158",
+          "inputs": {
+            "DX": [
+              2,
+              "78cb75b9d6d24821a69b"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "e1be9b0dfbaf4084914c": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "6d9377fd0436427ba1a0",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "Block",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "6d9377fd0436427ba1a0": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "34b27e2dce924d95ad2e",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "e1be9b0dfbaf4084914c"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "71b17cdf56db443ba2ed": {
+          "opcode": "motion_changexby",
+          "next": null,
+          "parent": "34b27e2dce924d95ad2e",
+          "inputs": {
+            "DX": [
+              1,
+              [
+                4,
+                "5"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "34b27e2dce924d95ad2e": {
+          "opcode": "control_if",
+          "next": null,
+          "parent": "37766fad51824c609234",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "6d9377fd0436427ba1a0"
+            ],
+            "SUBSTACK": [
+              2,
+              "71b17cdf56db443ba2ed"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "97027dd060574da9abb8": {
+          "opcode": "control_if",
+          "next": "cc06e4a7b07e4f8dbcb3",
+          "parent": "25139b7639954f84bffe",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "9d75d4021e4746fd929f"
+            ],
+            "SUBSTACK": [
+              2,
+              "22253ae4e137448c9158"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "3536d6d1fd554f20bf67": {
+          "opcode": "sensing_keyoptions",
+          "next": null,
+          "parent": "4a671beef36b4fb5bb0d",
+          "inputs": {},
+          "fields": {
+            "KEY_OPTION": [
+              "d",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "4a671beef36b4fb5bb0d": {
+          "opcode": "sensing_keypressed",
+          "next": null,
+          "parent": "cc06e4a7b07e4f8dbcb3",
+          "inputs": {
+            "KEY_OPTION": [
+              1,
+              "3536d6d1fd554f20bf67"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b4dde9fb04ec4d81ac8f": {
+          "opcode": "motion_pointindirection",
+          "next": "71697d66efe1463f9f16",
+          "parent": "cc06e4a7b07e4f8dbcb3",
+          "inputs": {
+            "DIRECTION": [
+              1,
+              [
+                4,
+                "90"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "71697d66efe1463f9f16": {
+          "opcode": "motion_changexby",
+          "next": "fc12a5a699cf4ec6a591",
+          "parent": "b4dde9fb04ec4d81ac8f",
+          "inputs": {
+            "DX": [
+              1,
+              [
+                4,
+                "5"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "992c21248e0545178196": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "30e9214651ab43a593e1",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "Block",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "30e9214651ab43a593e1": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "fc12a5a699cf4ec6a591",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "992c21248e0545178196"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "976b96b2c2cb478084c8": {
+          "opcode": "operator_subtract",
+          "next": null,
+          "parent": "c838e0defc0c45aeb9d9",
+          "inputs": {
+            "NUM1": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ],
+            "NUM2": [
+              1,
+              [
+                4,
+                "5"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "c838e0defc0c45aeb9d9": {
+          "opcode": "motion_changexby",
+          "next": null,
+          "parent": "fc12a5a699cf4ec6a591",
+          "inputs": {
+            "DX": [
+              2,
+              "976b96b2c2cb478084c8"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "fc12a5a699cf4ec6a591": {
+          "opcode": "control_if",
+          "next": null,
+          "parent": "71697d66efe1463f9f16",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "30e9214651ab43a593e1"
+            ],
+            "SUBSTACK": [
+              2,
+              "c838e0defc0c45aeb9d9"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "cc06e4a7b07e4f8dbcb3": {
+          "opcode": "control_if",
+          "next": "f325e66a9fc34117b631",
+          "parent": "97027dd060574da9abb8",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "4a671beef36b4fb5bb0d"
+            ],
+            "SUBSTACK": [
+              2,
+              "b4dde9fb04ec4d81ac8f"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "2be8d5dbbf0a42a4abc4": {
+          "opcode": "sensing_keyoptions",
+          "next": null,
+          "parent": "bd0d9638ad3b443d8e7b",
+          "inputs": {},
+          "fields": {
+            "KEY_OPTION": [
+              "space",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "bd0d9638ad3b443d8e7b": {
+          "opcode": "sensing_keypressed",
+          "next": null,
+          "parent": "dfb5f09c5b4d45d3b21d",
+          "inputs": {
+            "KEY_OPTION": [
+              1,
+              "2be8d5dbbf0a42a4abc4"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b200f0922a304244890a": {
+          "opcode": "data_variable",
+          "next": null,
+          "parent": "e41c2de16fa8442b81bb",
+          "inputs": {},
+          "fields": {
+            "VARIABLE": [
+              "grounded",
+              "a37df927696b4366a15c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "20e110c581f8450181c4": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "e41c2de16fa8442b81bb",
+          "inputs": {
+            "OPERAND1": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ],
+            "OPERAND2": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "e41c2de16fa8442b81bb": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "dfb5f09c5b4d45d3b21d",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "b200f0922a304244890a"
+            ],
+            "OPERAND2": [
+              2,
+              "20e110c581f8450181c4"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "dfb5f09c5b4d45d3b21d": {
+          "opcode": "operator_and",
+          "next": null,
+          "parent": "f325e66a9fc34117b631",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "bd0d9638ad3b443d8e7b"
+            ],
+            "OPERAND2": [
+              2,
+              "e41c2de16fa8442b81bb"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "3bf7350cea1a4f1f8d72": {
+          "opcode": "data_setvariableto",
+          "next": "140424dd96eb495b9d78",
+          "parent": "f325e66a9fc34117b631",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "14"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "velocityY",
+              "12889dddbfbe4168a17c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "70d85e97bc254e538073": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "140424dd96eb495b9d78",
+          "inputs": {
+            "OPERAND1": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ],
+            "OPERAND2": [
+              1,
+              [
+                10,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "140424dd96eb495b9d78": {
+          "opcode": "data_setvariableto",
+          "next": null,
+          "parent": "3bf7350cea1a4f1f8d72",
+          "inputs": {
+            "VALUE": [
+              2,
+              "70d85e97bc254e538073"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "grounded",
+              "a37df927696b4366a15c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "f325e66a9fc34117b631": {
+          "opcode": "control_if",
+          "next": "d73aff8951994556bc51",
+          "parent": "cc06e4a7b07e4f8dbcb3",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "dfb5f09c5b4d45d3b21d"
+            ],
+            "SUBSTACK": [
+              2,
+              "3bf7350cea1a4f1f8d72"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "2826fc794b1f4db5bdbb": {
+          "opcode": "data_variable",
+          "next": null,
+          "parent": "03011628f7a3499fb330",
+          "inputs": {},
+          "fields": {
+            "VARIABLE": [
+              "velocityY",
+              "12889dddbfbe4168a17c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "03011628f7a3499fb330": {
+          "opcode": "operator_subtract",
+          "next": null,
+          "parent": "d73aff8951994556bc51",
+          "inputs": {
+            "NUM1": [
+              2,
+              "2826fc794b1f4db5bdbb"
+            ],
+            "NUM2": [
+              1,
+              [
+                4,
+                "1"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "d73aff8951994556bc51": {
+          "opcode": "data_setvariableto",
+          "next": "ac4b4bf3f1864f87acca",
+          "parent": "f325e66a9fc34117b631",
+          "inputs": {
+            "VALUE": [
+              2,
+              "03011628f7a3499fb330"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "velocityY",
+              "12889dddbfbe4168a17c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "c20397d885cf4cae8ade": {
+          "opcode": "data_variable",
+          "next": null,
+          "parent": "d160985006464851a4a9",
+          "inputs": {},
+          "fields": {
+            "VARIABLE": [
+              "velocityY",
+              "12889dddbfbe4168a17c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "7aba59606c4f4dfe812c": {
+          "opcode": "operator_subtract",
+          "next": null,
+          "parent": "d160985006464851a4a9",
+          "inputs": {
+            "NUM1": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ],
+            "NUM2": [
+              1,
+              [
+                4,
+                "12"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "d160985006464851a4a9": {
+          "opcode": "operator_lt",
+          "next": null,
+          "parent": "ac4b4bf3f1864f87acca",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "c20397d885cf4cae8ade"
+            ],
+            "OPERAND2": [
+              2,
+              "7aba59606c4f4dfe812c"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "1539e2ed822848f7bf54": {
+          "opcode": "operator_subtract",
+          "next": null,
+          "parent": "f5e6d3ea281045879f2f",
+          "inputs": {
+            "NUM1": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ],
+            "NUM2": [
+              1,
+              [
+                4,
+                "12"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "f5e6d3ea281045879f2f": {
+          "opcode": "data_setvariableto",
+          "next": null,
+          "parent": "ac4b4bf3f1864f87acca",
+          "inputs": {
+            "VALUE": [
+              2,
+              "1539e2ed822848f7bf54"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "velocityY",
+              "12889dddbfbe4168a17c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "ac4b4bf3f1864f87acca": {
+          "opcode": "control_if",
+          "next": "2aa9728b5bdd42b09fc1",
+          "parent": "d73aff8951994556bc51",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "d160985006464851a4a9"
+            ],
+            "SUBSTACK": [
+              2,
+              "f5e6d3ea281045879f2f"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "974dd584259f4448a606": {
+          "opcode": "data_variable",
+          "next": null,
+          "parent": "2aa9728b5bdd42b09fc1",
+          "inputs": {},
+          "fields": {
+            "VARIABLE": [
+              "velocityY",
+              "12889dddbfbe4168a17c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "2aa9728b5bdd42b09fc1": {
+          "opcode": "motion_changeyby",
+          "next": "29679a1f32ab419e814d",
+          "parent": "ac4b4bf3f1864f87acca",
+          "inputs": {
+            "DY": [
+              2,
+              "974dd584259f4448a606"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "c6ef539e036649369796": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "a4ca861047894f64aa88",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "Block",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "a4ca861047894f64aa88": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "29679a1f32ab419e814d",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "c6ef539e036649369796"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "adf295c2661341b1b22d": {
+          "opcode": "data_variable",
+          "next": null,
+          "parent": "b7a5dae6dff749d8b9e8",
+          "inputs": {},
+          "fields": {
+            "VARIABLE": [
+              "velocityY",
+              "12889dddbfbe4168a17c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b7a5dae6dff749d8b9e8": {
+          "opcode": "operator_subtract",
+          "next": null,
+          "parent": "4011e74c8a124e50984e",
+          "inputs": {
+            "NUM1": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ],
+            "NUM2": [
+              2,
+              "adf295c2661341b1b22d"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "4011e74c8a124e50984e": {
+          "opcode": "motion_changeyby",
+          "next": "6744dac3ed2444b2a88f",
+          "parent": "29679a1f32ab419e814d",
+          "inputs": {
+            "DY": [
+              2,
+              "b7a5dae6dff749d8b9e8"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "6744dac3ed2444b2a88f": {
+          "opcode": "data_setvariableto",
+          "next": null,
+          "parent": "4011e74c8a124e50984e",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "velocityY",
+              "12889dddbfbe4168a17c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "29679a1f32ab419e814d": {
+          "opcode": "control_if",
+          "next": "1deba6a45911485c9de5",
+          "parent": "2aa9728b5bdd42b09fc1",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "a4ca861047894f64aa88"
+            ],
+            "SUBSTACK": [
+              2,
+              "4011e74c8a124e50984e"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "57f0f7299d534779b0a8": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "1deba6a45911485c9de5",
+          "inputs": {
+            "OPERAND1": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ],
+            "OPERAND2": [
+              1,
+              [
+                10,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "1deba6a45911485c9de5": {
+          "opcode": "data_setvariableto",
+          "next": "1a0e14fdad714cf29c47",
+          "parent": "29679a1f32ab419e814d",
+          "inputs": {
+            "VALUE": [
+              2,
+              "57f0f7299d534779b0a8"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "grounded",
+              "a37df927696b4366a15c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "b6f337118b82437b9b35": {
+          "opcode": "operator_subtract",
+          "next": null,
+          "parent": "1a0e14fdad714cf29c47",
+          "inputs": {
+            "NUM1": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ],
+            "NUM2": [
+              1,
+              [
+                4,
+                "1"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "1a0e14fdad714cf29c47": {
+          "opcode": "motion_changeyby",
+          "next": "c027eedae6f143bfaf35",
+          "parent": "1deba6a45911485c9de5",
+          "inputs": {
+            "DY": [
+              2,
+              "b6f337118b82437b9b35"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "a6543ee7d5804c5bb253": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "2d807bfeba2c455f9619",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "Block",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "2d807bfeba2c455f9619": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "c027eedae6f143bfaf35",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "a6543ee7d5804c5bb253"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "0f71971583ac40c68a55": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "cd29cfdb9bc041caaaaa",
+          "inputs": {
+            "OPERAND1": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ],
+            "OPERAND2": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "cd29cfdb9bc041caaaaa": {
+          "opcode": "data_setvariableto",
+          "next": null,
+          "parent": "c027eedae6f143bfaf35",
+          "inputs": {
+            "VALUE": [
+              2,
+              "0f71971583ac40c68a55"
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "grounded",
+              "a37df927696b4366a15c"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "c027eedae6f143bfaf35": {
+          "opcode": "control_if",
+          "next": "cf09c3b3a2104c368049",
+          "parent": "1a0e14fdad714cf29c47",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "2d807bfeba2c455f9619"
+            ],
+            "SUBSTACK": [
+              2,
+              "cd29cfdb9bc041caaaaa"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "cf09c3b3a2104c368049": {
+          "opcode": "motion_changeyby",
+          "next": null,
+          "parent": "c027eedae6f143bfaf35",
+          "inputs": {
+            "DY": [
+              1,
+              [
+                4,
+                "1"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "25139b7639954f84bffe": {
+          "opcode": "control_if",
+          "next": null,
+          "parent": "44546274c05c417abcd2",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "c31629db0bbc4c44aeca"
+            ],
+            "SUBSTACK": [
+              2,
+              "97027dd060574da9abb8"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "44546274c05c417abcd2": {
+          "opcode": "control_forever",
+          "next": null,
+          "parent": "ed808df7751a41258b94",
+          "inputs": {
+            "SUBSTACK": [
+              2,
+              "25139b7639954f84bffe"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        }
+      },
+      "comments": {},
+      "currentCostume": 0,
+      "costumes": [
+        {
+          "assetId": "78623e8b1e3c2cebf9dbb7aa02c8b78c",
+          "name": "Hitbox",
+          "bitmapResolution": 1,
+          "md5ext": "78623e8b1e3c2cebf9dbb7aa02c8b78c.svg",
+          "dataFormat": "svg",
+          "rotationCenterX": 16,
+          "rotationCenterY": 24
+        }
+      ],
+      "sounds": [],
+      "layerOrder": 2,
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "size": 100,
+      "direction": 90,
+      "draggable": false,
+      "rotationStyle": "all around"
+    },
+    {
+      "isStage": false,
+      "name": "Block",
+      "variables": {},
+      "lists": {},
+      "broadcasts": {},
+      "blocks": {
+        "dea6fcdf37534083916b": {
+          "opcode": "event_whenflagclicked",
+          "next": "55c04d5708af4ce8b0b8",
+          "parent": null,
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": true,
+          "x": 0,
+          "y": 0
+        },
+        "1afc85bb5e644421bac2": {
+          "opcode": "data_hidevariable",
+          "next": null,
+          "parent": "55c04d5708af4ce8b0b8",
+          "inputs": {},
+          "fields": {
+            "VARIABLE": [
+              "fertigeBloecke",
+              "e330832802534d50ac5f"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "55c04d5708af4ce8b0b8": {
+          "opcode": "data_setvariableto",
+          "next": "1afc85bb5e644421bac2",
+          "parent": "dea6fcdf37534083916b",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "fertigeBloecke",
+              "e330832802534d50ac5f"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false,
+          "comment": "433e88514a46478bb6d4"
+        },
+        "51a8ef77150e4677ab43": {
+          "opcode": "event_whenbroadcastreceived",
+          "next": "1c7d70832685467da9e1",
+          "parent": null,
+          "inputs": {},
+          "fields": {
+            "BROADCAST_OPTION": [
+              "MouseReady",
+              "96b522f3d7ae403593b4"
+            ]
+          },
+          "shadow": false,
+          "topLevel": true,
+          "x": 300,
+          "y": 0
+        },
+        "1c7d70832685467da9e1": {
+          "opcode": "data_setvariableto",
+          "next": "daed1df053ea404ca0e6",
+          "parent": "51a8ef77150e4677ab43",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "fertigeBloecke",
+              "e330832802534d50ac5f"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "68d60e864c8c42df8d57": {
+          "opcode": "motion_goto_menu",
+          "next": null,
+          "parent": "daed1df053ea404ca0e6",
+          "inputs": {},
+          "fields": {
+            "TO": [
+              "MouseHitbox",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "daed1df053ea404ca0e6": {
+          "opcode": "motion_goto",
+          "next": "5e05d87a7cf045e4bff6",
+          "parent": "1c7d70832685467da9e1",
+          "inputs": {
+            "TO": [
+              1,
+              "68d60e864c8c42df8d57"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "13c9dc3e192149c882a2": {
+          "opcode": "operator_subtract",
+          "next": null,
+          "parent": "5e05d87a7cf045e4bff6",
+          "inputs": {
+            "NUM1": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ],
+            "NUM2": [
+              1,
+              [
+                4,
+                "50"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "5e05d87a7cf045e4bff6": {
+          "opcode": "motion_changeyby",
+          "next": "1520bfadf4ce4611a5fe",
+          "parent": "daed1df053ea404ca0e6",
+          "inputs": {
+            "DY": [
+              2,
+              "13c9dc3e192149c882a2"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false,
+          "comment": "0fa2fed73a3148759220"
+        },
+        "42baab06f6df4099b069": {
+          "opcode": "control_create_clone_of_menu",
+          "next": null,
+          "parent": "8872571a096f4962b191",
+          "inputs": {},
+          "fields": {
+            "CLONE_OPTION": [
+              "Block",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "8872571a096f4962b191": {
+          "opcode": "control_create_clone_of",
+          "next": null,
+          "parent": "1520bfadf4ce4611a5fe",
+          "inputs": {
+            "CLONE_OPTION": [
+              1,
+              "42baab06f6df4099b069"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "1520bfadf4ce4611a5fe": {
+          "opcode": "control_repeat",
+          "next": "24abe44ce8504477adfb",
+          "parent": "5e05d87a7cf045e4bff6",
+          "inputs": {
+            "TIMES": [
+              1,
+              [
+                4,
+                "4"
+              ]
+            ],
+            "SUBSTACK": [
+              2,
+              "8872571a096f4962b191"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "5104280966bd49b8bf9b": {
+          "opcode": "data_variable",
+          "next": null,
+          "parent": "745fab0449d64cea9746",
+          "inputs": {},
+          "fields": {
+            "VARIABLE": [
+              "fertigeBloecke",
+              "e330832802534d50ac5f"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "745fab0449d64cea9746": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "24abe44ce8504477adfb",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "5104280966bd49b8bf9b"
+            ],
+            "OPERAND2": [
+              1,
+              [
+                4,
+                "4"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "24abe44ce8504477adfb": {
+          "opcode": "control_wait_until",
+          "next": "bd023fd079d8429eb2b5",
+          "parent": "1520bfadf4ce4611a5fe",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "745fab0449d64cea9746"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "bd023fd079d8429eb2b5": {
+          "opcode": "data_changevariableby",
+          "next": "c2868a1ece6f498893b5",
+          "parent": "24abe44ce8504477adfb",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "1"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "Movement",
+              "752ee83d33664dc4b8a3"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "c2868a1ece6f498893b5": {
+          "opcode": "event_broadcast",
+          "next": null,
+          "parent": "bd023fd079d8429eb2b5",
+          "inputs": {
+            "BROADCAST_INPUT": [
+              1,
+              [
+                11,
+                "Built",
+                "b7d04f1ee2774b729abd"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "0b0a133e2b8144549916": {
+          "opcode": "event_whenbroadcastreceived",
+          "next": "738c7b4d5dc54d22aa40",
+          "parent": null,
+          "inputs": {},
+          "fields": {
+            "BROADCAST_OPTION": [
+              "Vernichtung",
+              "4989623ce16f456782d0"
+            ]
+          },
+          "shadow": false,
+          "topLevel": true,
+          "x": 600,
+          "y": 0
+        },
+        "738c7b4d5dc54d22aa40": {
+          "opcode": "control_delete_this_clone",
+          "next": null,
+          "parent": "0b0a133e2b8144549916",
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "e86b07c9894646ab86eb": {
+          "opcode": "control_start_as_clone",
+          "next": "77a18ea443de4da38be8",
+          "parent": null,
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": true,
+          "x": 900,
+          "y": 0
+        },
+        "77a18ea443de4da38be8": {
+          "opcode": "looks_setsizeto",
+          "next": "c500444542cb437fbf34",
+          "parent": "e86b07c9894646ab86eb",
+          "inputs": {
+            "SIZE": [
+              1,
+              [
+                4,
+                "200"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "c6b3eae7cb66469d99a0": {
+          "opcode": "motion_goto_menu",
+          "next": null,
+          "parent": "c500444542cb437fbf34",
+          "inputs": {},
+          "fields": {
+            "TO": [
+              "_random_",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "c500444542cb437fbf34": {
+          "opcode": "motion_goto",
+          "next": "1a2d22f8ddda4ae88fd5",
+          "parent": "77a18ea443de4da38be8",
+          "inputs": {
+            "TO": [
+              1,
+              "c6b3eae7cb66469d99a0"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "44e9566ad6cb4aa7885a": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "1c408ecbc5e842adb174",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "Block",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "1c408ecbc5e842adb174": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "55ff7e796a294405a2aa",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "44e9566ad6cb4aa7885a"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b46fdd9af6584940b65f": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "55ff7e796a294405a2aa",
+          "inputs": {
+            "OPERAND1": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ],
+            "OPERAND2": [
+              1,
+              [
+                10,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "55ff7e796a294405a2aa": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "34a0fc2bdec54b7fa443",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "1c408ecbc5e842adb174"
+            ],
+            "OPERAND2": [
+              2,
+              "b46fdd9af6584940b65f"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b74ab6bbdcc0452f9756": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "e42aa983e25543d2ad0d",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "_edge_",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "e42aa983e25543d2ad0d": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "9f646be2783246b48d4e",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "b74ab6bbdcc0452f9756"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "eb9fdc0ca2c346f7b2f4": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "9f646be2783246b48d4e",
+          "inputs": {
+            "OPERAND1": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ],
+            "OPERAND2": [
+              1,
+              [
+                10,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "9f646be2783246b48d4e": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "34a0fc2bdec54b7fa443",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "e42aa983e25543d2ad0d"
+            ],
+            "OPERAND2": [
+              2,
+              "eb9fdc0ca2c346f7b2f4"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "34a0fc2bdec54b7fa443": {
+          "opcode": "operator_and",
+          "next": null,
+          "parent": "a72df69523874788a267",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "55ff7e796a294405a2aa"
+            ],
+            "OPERAND2": [
+              2,
+              "9f646be2783246b48d4e"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "bf07e54a16ea4330ae53": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "23cfcbe324ff440fa196",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "MouseHitbox",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "23cfcbe324ff440fa196": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "bef80f3f92f1479cb287",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "bf07e54a16ea4330ae53"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "aa9bb29e42d14b338965": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "bef80f3f92f1479cb287",
+          "inputs": {
+            "OPERAND1": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ],
+            "OPERAND2": [
+              1,
+              [
+                10,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "bef80f3f92f1479cb287": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "a72df69523874788a267",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "23cfcbe324ff440fa196"
+            ],
+            "OPERAND2": [
+              2,
+              "aa9bb29e42d14b338965"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "a72df69523874788a267": {
+          "opcode": "operator_and",
+          "next": null,
+          "parent": "0fe48fbba8d04ae09200",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "34a0fc2bdec54b7fa443"
+            ],
+            "OPERAND2": [
+              2,
+              "bef80f3f92f1479cb287"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "e461aee13e68420bb32c": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "c1b8c5c4bc1c4875b33d",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "Finish",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "c1b8c5c4bc1c4875b33d": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "878daae5e2734b998310",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "e461aee13e68420bb32c"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "6be9a6292bc94fecbb66": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "878daae5e2734b998310",
+          "inputs": {
+            "OPERAND1": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ],
+            "OPERAND2": [
+              1,
+              [
+                10,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "878daae5e2734b998310": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "0fe48fbba8d04ae09200",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "c1b8c5c4bc1c4875b33d"
+            ],
+            "OPERAND2": [
+              2,
+              "6be9a6292bc94fecbb66"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "0fe48fbba8d04ae09200": {
+          "opcode": "operator_and",
+          "next": null,
+          "parent": "1a2d22f8ddda4ae88fd5",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "a72df69523874788a267"
+            ],
+            "OPERAND2": [
+              2,
+              "878daae5e2734b998310"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "d201a2b19e6e4963ae42": {
+          "opcode": "motion_goto_menu",
+          "next": null,
+          "parent": "ba33764d580543f19390",
+          "inputs": {},
+          "fields": {
+            "TO": [
+              "_random_",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "ba33764d580543f19390": {
+          "opcode": "motion_goto",
+          "next": null,
+          "parent": "1a2d22f8ddda4ae88fd5",
+          "inputs": {
+            "TO": [
+              1,
+              "d201a2b19e6e4963ae42"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "1a2d22f8ddda4ae88fd5": {
+          "opcode": "control_repeat_until",
+          "next": "f516206995154699a301",
+          "parent": "c500444542cb437fbf34",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "0fe48fbba8d04ae09200"
+            ],
+            "SUBSTACK": [
+              2,
+              "ba33764d580543f19390"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "f516206995154699a301": {
+          "opcode": "looks_setsizeto",
+          "next": "25b8c8e325b64e5a81b2",
+          "parent": "1a2d22f8ddda4ae88fd5",
+          "inputs": {
+            "SIZE": [
+              1,
+              [
+                4,
+                "100"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false,
+          "comment": "536869b1f04440349c0a"
+        },
+        "25b8c8e325b64e5a81b2": {
+          "opcode": "data_changevariableby",
+          "next": null,
+          "parent": "f516206995154699a301",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "1"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "fertigeBloecke",
+              "e330832802534d50ac5f"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        }
+      },
+      "comments": {
+        "433e88514a46478bb6d4": {
+          "blockId": "55c04d5708af4ce8b0b8",
+          "x": 300,
+          "y": 20,
+          "width": 876,
+          "height": 100,
+          "minimized": false,
+          "text": "Der Aufbau beginnt erst, wenn die Hitbox ihre Startposition erreicht hat."
+        },
+        "0fa2fed73a3148759220": {
+          "blockId": "5e05d87a7cf045e4bff6",
+          "x": 600,
+          "y": 140,
+          "width": 600,
+          "height": 100,
+          "minimized": false,
+          "text": "Erst danach die vier zusätzlichen Blöcke erzeugen."
+        },
+        "536869b1f04440349c0a": {
+          "blockId": "f516206995154699a301",
+          "x": 1200,
+          "y": 200,
+          "width": 350,
+          "height": 100,
+          "minimized": false,
+          "text": "Platzierung abgeschlossen"
+        }
+      },
+      "currentCostume": 0,
+      "costumes": [
+        {
+          "assetId": "5021f6b7d166873ef0711c4d4a351912",
+          "name": "Button3-a",
+          "bitmapResolution": 1,
+          "md5ext": "5021f6b7d166873ef0711c4d4a351912.svg",
+          "dataFormat": "svg",
+          "rotationCenterX": 72,
+          "rotationCenterY": 72
+        }
+      ],
+      "sounds": [],
+      "layerOrder": 3,
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "size": 100,
+      "direction": 90,
+      "draggable": false,
+      "rotationStyle": "all around"
+    },
+    {
+      "isStage": false,
+      "name": "Finish",
+      "variables": {},
+      "lists": {},
+      "broadcasts": {},
+      "blocks": {
+        "a65e1a062a6941958371": {
+          "opcode": "procedures_prototype",
+          "next": null,
+          "parent": "accd37b8b5ab4104a69f",
+          "inputs": {},
+          "fields": {},
+          "shadow": true,
+          "topLevel": false,
+          "mutation": {
+            "tagName": "mutation",
+            "children": [],
+            "proccode": "startTp",
+            "argumentids": "[]",
+            "argumentnames": "[]",
+            "argumentdefaults": "[]",
+            "warp": "false"
+          }
+        },
+        "accd37b8b5ab4104a69f": {
+          "opcode": "procedures_definition",
+          "next": "1ebe808bbbaf4990a3a9",
+          "parent": null,
+          "inputs": {
+            "custom_block": [
+              1,
+              "a65e1a062a6941958371"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": true,
+          "x": 0,
+          "y": -300
+        },
+        "fb41544bc2d5403182f6": {
+          "opcode": "motion_goto_menu",
+          "next": null,
+          "parent": "1ebe808bbbaf4990a3a9",
+          "inputs": {},
+          "fields": {
+            "TO": [
+              "_random_",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "1ebe808bbbaf4990a3a9": {
+          "opcode": "motion_goto",
+          "next": "e0f858797fe846138e5c",
+          "parent": "accd37b8b5ab4104a69f",
+          "inputs": {
+            "TO": [
+              1,
+              "fb41544bc2d5403182f6"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "6be69c4509304e57b9c3": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "3ea30eb1d30f4d928baf",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "Block",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "3ea30eb1d30f4d928baf": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "c489997d1a0c434cbcfb",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "6be69c4509304e57b9c3"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "ea4207a1a44e47e6bbf7": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "c489997d1a0c434cbcfb",
+          "inputs": {
+            "OPERAND1": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ],
+            "OPERAND2": [
+              1,
+              [
+                10,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "c489997d1a0c434cbcfb": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "7ad2cb2361484af68239",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "3ea30eb1d30f4d928baf"
+            ],
+            "OPERAND2": [
+              2,
+              "ea4207a1a44e47e6bbf7"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "bb5fa00273e344dd9fb4": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "69c14ad6349640359cbf",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "_edge_",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "69c14ad6349640359cbf": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "57ac5e5ba67f458e9c70",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "bb5fa00273e344dd9fb4"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "a3ffdccc4c6a488abf33": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "57ac5e5ba67f458e9c70",
+          "inputs": {
+            "OPERAND1": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ],
+            "OPERAND2": [
+              1,
+              [
+                10,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "57ac5e5ba67f458e9c70": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "7ad2cb2361484af68239",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "69c14ad6349640359cbf"
+            ],
+            "OPERAND2": [
+              2,
+              "a3ffdccc4c6a488abf33"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "7ad2cb2361484af68239": {
+          "opcode": "operator_and",
+          "next": null,
+          "parent": "5e9ca99f69b245689be9",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "c489997d1a0c434cbcfb"
+            ],
+            "OPERAND2": [
+              2,
+              "57ac5e5ba67f458e9c70"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "70cb9c0111fe41bfa0dd": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "534f07c8ef8543128ad2",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "MouseHitbox",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "534f07c8ef8543128ad2": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "1cf1a26ecb7146ab95ae",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "70cb9c0111fe41bfa0dd"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "e8d73f27c62e472a8ead": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "1cf1a26ecb7146ab95ae",
+          "inputs": {
+            "OPERAND1": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ],
+            "OPERAND2": [
+              1,
+              [
+                10,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "1cf1a26ecb7146ab95ae": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "5e9ca99f69b245689be9",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "534f07c8ef8543128ad2"
+            ],
+            "OPERAND2": [
+              2,
+              "e8d73f27c62e472a8ead"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "5e9ca99f69b245689be9": {
+          "opcode": "operator_and",
+          "next": null,
+          "parent": "d95b3a80b9b04def9b7c",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "7ad2cb2361484af68239"
+            ],
+            "OPERAND2": [
+              2,
+              "1cf1a26ecb7146ab95ae"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "08d2f0740d2642429806": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "a3026411b588475097cf",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "Finish",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "a3026411b588475097cf": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "30017dca246c430d8450",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "08d2f0740d2642429806"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "cfa150cec4cc455a9327": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "30017dca246c430d8450",
+          "inputs": {
+            "OPERAND1": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ],
+            "OPERAND2": [
+              1,
+              [
+                10,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "30017dca246c430d8450": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "d95b3a80b9b04def9b7c",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "a3026411b588475097cf"
+            ],
+            "OPERAND2": [
+              2,
+              "cfa150cec4cc455a9327"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "d95b3a80b9b04def9b7c": {
+          "opcode": "operator_and",
+          "next": null,
+          "parent": "e0f858797fe846138e5c",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "5e9ca99f69b245689be9"
+            ],
+            "OPERAND2": [
+              2,
+              "30017dca246c430d8450"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "72dd27ef4a31487088cd": {
+          "opcode": "motion_goto_menu",
+          "next": null,
+          "parent": "f30c294e2bff442fa6d4",
+          "inputs": {},
+          "fields": {
+            "TO": [
+              "_random_",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "f30c294e2bff442fa6d4": {
+          "opcode": "motion_goto",
+          "next": null,
+          "parent": "e0f858797fe846138e5c",
+          "inputs": {
+            "TO": [
+              1,
+              "72dd27ef4a31487088cd"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "e0f858797fe846138e5c": {
+          "opcode": "control_repeat_until",
+          "next": null,
+          "parent": "1ebe808bbbaf4990a3a9",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "d95b3a80b9b04def9b7c"
+            ],
+            "SUBSTACK": [
+              2,
+              "f30c294e2bff442fa6d4"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b2c2f941a0cf4e4ea311": {
+          "opcode": "event_whenflagclicked",
+          "next": "578c5f1280b44276ae82",
+          "parent": null,
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": true,
+          "x": 0,
+          "y": 0
+        },
+        "5959ecf1ba8643c1a889": {
+          "opcode": "data_showvariable",
+          "next": null,
+          "parent": "578c5f1280b44276ae82",
+          "inputs": {},
+          "fields": {
+            "VARIABLE": [
+              "Level",
+              "49ec3f72398d4e0f8fd0"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "578c5f1280b44276ae82": {
+          "opcode": "data_setvariableto",
+          "next": "5959ecf1ba8643c1a889",
+          "parent": "b2c2f941a0cf4e4ea311",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "Level",
+              "49ec3f72398d4e0f8fd0"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "f274766398d64bf4a386": {
+          "opcode": "event_whenflagclicked",
+          "next": "e68246ddc802405c94cb",
+          "parent": null,
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": true,
+          "x": 300,
+          "y": 0
+        },
+        "e68246ddc802405c94cb": {
+          "opcode": "data_setvariableto",
+          "next": "20417390a55a41b88bf8",
+          "parent": "f274766398d64bf4a386",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "0"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "Level",
+              "49ec3f72398d4e0f8fd0"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "20417390a55a41b88bf8": {
+          "opcode": "procedures_call",
+          "next": null,
+          "parent": "e68246ddc802405c94cb",
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": false,
+          "mutation": {
+            "tagName": "mutation",
+            "children": [],
+            "proccode": "startTp",
+            "argumentids": "[]",
+            "warp": "false"
+          }
+        },
+        "ecccbfc8784843579b69": {
+          "opcode": "event_whenflagclicked",
+          "next": "c81e0b0680a245659e94",
+          "parent": null,
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": true,
+          "x": 600,
+          "y": 0
+        },
+        "6c87465944b949e18b01": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "f19fff981b854453bcfc",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "Mouse",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "f19fff981b854453bcfc": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "b92d983fc48b4d71911f",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "6c87465944b949e18b01"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "2a17455342a74570b8f5": {
+          "opcode": "event_broadcast",
+          "next": "e4ce67c22c4948de98b6",
+          "parent": "b92d983fc48b4d71911f",
+          "inputs": {
+            "BROADCAST_INPUT": [
+              1,
+              [
+                11,
+                "Vernichtung",
+                "4989623ce16f456782d0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "e4ce67c22c4948de98b6": {
+          "opcode": "event_broadcast",
+          "next": "cb6418a1ab184933a45a",
+          "parent": "2a17455342a74570b8f5",
+          "inputs": {
+            "BROADCAST_INPUT": [
+              1,
+              [
+                11,
+                "NextLevel",
+                "6544bf9a226f410e9d57"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "cb6418a1ab184933a45a": {
+          "opcode": "data_changevariableby",
+          "next": "3da7133bf8d145d6b208",
+          "parent": "e4ce67c22c4948de98b6",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "-1"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "Movement",
+              "752ee83d33664dc4b8a3"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false,
+          "comment": "8ab3ce7e317641b3a657"
+        },
+        "f33bdf18309540f29caf": {
+          "opcode": "sensing_touchingobjectmenu",
+          "next": null,
+          "parent": "ca771829cbaa4e928b4b",
+          "inputs": {},
+          "fields": {
+            "TOUCHINGOBJECTMENU": [
+              "Mouse",
+              null
+            ]
+          },
+          "shadow": true,
+          "topLevel": false
+        },
+        "ca771829cbaa4e928b4b": {
+          "opcode": "sensing_touchingobject",
+          "next": null,
+          "parent": "a5a34d4c26eb4eba99e2",
+          "inputs": {
+            "TOUCHINGOBJECTMENU": [
+              1,
+              "f33bdf18309540f29caf"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "fe4536625d9347b18ffd": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "a5a34d4c26eb4eba99e2",
+          "inputs": {
+            "OPERAND1": [
+              1,
+              [
+                10,
+                "1"
+              ]
+            ],
+            "OPERAND2": [
+              1,
+              [
+                10,
+                "0"
+              ]
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "a5a34d4c26eb4eba99e2": {
+          "opcode": "operator_equals",
+          "next": null,
+          "parent": "3da7133bf8d145d6b208",
+          "inputs": {
+            "OPERAND1": [
+              2,
+              "ca771829cbaa4e928b4b"
+            ],
+            "OPERAND2": [
+              2,
+              "fe4536625d9347b18ffd"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "3da7133bf8d145d6b208": {
+          "opcode": "control_wait_until",
+          "next": null,
+          "parent": "cb6418a1ab184933a45a",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "a5a34d4c26eb4eba99e2"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "b92d983fc48b4d71911f": {
+          "opcode": "control_if",
+          "next": null,
+          "parent": "c81e0b0680a245659e94",
+          "inputs": {
+            "CONDITION": [
+              2,
+              "f19fff981b854453bcfc"
+            ],
+            "SUBSTACK": [
+              2,
+              "2a17455342a74570b8f5"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "c81e0b0680a245659e94": {
+          "opcode": "control_forever",
+          "next": null,
+          "parent": "ecccbfc8784843579b69",
+          "inputs": {
+            "SUBSTACK": [
+              2,
+              "b92d983fc48b4d71911f"
+            ]
+          },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "5db18328ecda430e8f14": {
+          "opcode": "event_whenbroadcastreceived",
+          "next": "09a7f1a743514e128e33",
+          "parent": null,
+          "inputs": {},
+          "fields": {
+            "BROADCAST_OPTION": [
+              "NextLevel",
+              "6544bf9a226f410e9d57"
+            ]
+          },
+          "shadow": false,
+          "topLevel": true,
+          "x": 900,
+          "y": 0
+        },
+        "09a7f1a743514e128e33": {
+          "opcode": "data_changevariableby",
+          "next": "b0ee6b1b48514470b7a0",
+          "parent": "5db18328ecda430e8f14",
+          "inputs": {
+            "VALUE": [
+              1,
+              [
+                4,
+                "1"
+              ]
+            ]
+          },
+          "fields": {
+            "VARIABLE": [
+              "Level",
+              "49ec3f72398d4e0f8fd0"
+            ]
+          },
+          "shadow": false,
+          "topLevel": false,
+          "comment": "4fac3f2cd76c421bbc1f"
+        },
+        "b0ee6b1b48514470b7a0": {
+          "opcode": "procedures_call",
+          "next": null,
+          "parent": "09a7f1a743514e128e33",
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": false,
+          "mutation": {
+            "tagName": "mutation",
+            "children": [],
+            "proccode": "startTp",
+            "argumentids": "[]",
+            "warp": "false"
+          }
+        }
+      },
+      "comments": {
+        "8ab3ce7e317641b3a657": {
+          "blockId": "cb6418a1ab184933a45a",
+          "x": 0,
+          "y": 0,
+          "width": 468,
+          "height": 100,
+          "minimized": false,
+          "text": "Erst wieder auslösen, wenn Maus weg ist"
+        },
+        "4fac3f2cd76c421bbc1f": {
+          "blockId": "09a7f1a743514e128e33",
+          "x": 1200,
+          "y": 20,
+          "width": 350,
+          "height": 100,
+          "minimized": false,
+          "text": "Nur das Ziel teleportieren"
+        }
+      },
+      "currentCostume": 0,
+      "costumes": [
+        {
+          "assetId": "af4cd54e776031bc9cc54ddd6892f97b",
+          "name": "Button2-a",
+          "bitmapResolution": 1,
+          "md5ext": "af4cd54e776031bc9cc54ddd6892f97b.svg",
+          "dataFormat": "svg",
+          "rotationCenterX": 72,
+          "rotationCenterY": 72
+        }
+      ],
+      "sounds": [],
+      "layerOrder": 4,
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "size": 100,
+      "direction": 90,
+      "draggable": false,
+      "rotationStyle": "all around"
+    }
+  ],
+  "monitors": [],
+  "extensions": [],
+  "meta": {
+    "semver": "3.0.0",
+    "vm": "0.2.0",
+    "agent": "scrape-transpiler/6.0"
+  }
+}

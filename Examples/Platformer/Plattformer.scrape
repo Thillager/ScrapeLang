@@ -1,0 +1,234 @@
+
+public Stage Buehne {
+    addBackdrop("Forest");
+}
+
+public Sprite Mouse {
+    addCostume("Mouse1-a");
+    addCostume("Mouse1-b");
+
+    // Sichtbare Maus folgt der Hitbox
+    onFlagClicked {
+        forever {
+            goToSprite("MouseHitbox");
+        }
+    }
+
+    // Animation und Ausrichtung
+    onFlagClicked {
+        forever {
+            if (keyPressed("d")) {
+                pointDir(90);
+            }
+
+            if (keyPressed("a")) {
+                pointDir(270);
+            }
+
+            if (keyPressed("a") || keyPressed("d")) {
+                animate("Mouse1-a", "Mouse1-b", 0.01);
+            }
+        }
+    }
+}
+
+public Sprite MouseHitbox {
+	public shown var Leben = 3;
+	public var Movement = 0;
+	
+    addCostume("Hitbox", "MouseHitbox.svg");
+
+    // Startposition zuerst setzen und danach den Block-Aufbau freigeben.
+    onFlagClicked {
+        goTo(0, 0);
+        broadcast("MouseReady");
+
+        forever {
+        	if (touching("_edge_")) {
+				broadcast("Vernichtung");
+				broadcast("NextLevel");
+				Leben--;
+				Movement--;
+				Level--;
+        	}
+        	if (Leben == 0) {
+        		stop("all");
+        	}
+        }
+    }
+
+	onBroadcastReceived("NextLevel") {
+		goTo(0, 0);
+		broadcast("MouseReady");
+	}
+
+    // Die Bewegungssteuerung startet ausdrücklich erst nach dem Aufbau.
+    // Vor dem Built-Broadcast bleibt die Hitbox am Startpunkt stehen.
+    onBroadcastReceived("Built") {
+        setEffect("ghost", 100);
+
+        var velocityY = 0;
+        var grounded = false;
+		
+        forever {
+        	if(Movement == 1) {
+            // Horizontale Bewegung
+            if (keyPressed("a")) {
+                pointDir(270);
+                changeX(-5);
+
+                if (touching("Block")) {
+                    changeX(5);
+                }
+            }
+
+            if (keyPressed("d")) {
+                pointDir(90);
+                changeX(5);
+
+                if (touching("Block")) {
+                    changeX(-5);
+                }
+            }
+
+            // Springen
+            if (keyPressed("space") && grounded == true) {
+                velocityY = 14;
+                grounded = false;
+            }
+
+            // Schwerkraft
+            velocityY -= 1;
+
+            if (velocityY < -12) {
+                velocityY = -12;
+            }
+
+            // Vertikale Bewegung
+            changeY(velocityY);
+
+            if (touching("Block")) {
+                changeY(0 - velocityY);
+                velocityY = 0;
+            }
+
+            // Boden erkennen
+            grounded = false;
+            changeY(-1);
+
+            if (touching("Block")) {
+                grounded = true;
+            }
+
+            changeY(1);
+        	}
+        }
+    }
+}
+
+public Sprite Block {
+
+    addCostume("Button3-a");
+
+    // Gemeinsame Variablen
+    public var fertigeBloecke = 0;
+
+    // Der Aufbau beginnt erst, wenn die Hitbox ihre Startposition erreicht hat.
+    // Der ORIGINAL-Block wird direkt unter der Maus platziert.
+    onBroadcastReceived("MouseReady") {
+        fertigeBloecke = 0;
+
+        goToSprite("MouseHitbox");
+        changeY(-50);
+
+        // Erst danach die vier zusätzlichen Blöcke erzeugen.
+        repeat (4) {
+            createClone("Block");
+        }
+
+        // Die Maus bleibt bis Built unbewegt.
+        // Erst wenn alle vier Klone ihre Position gefunden haben,
+        // wird die Steuerung der MouseHitbox freigegeben.
+        waitUntil (fertigeBloecke == 4);
+        Movement++;
+        broadcast("Built");
+    }
+
+    onBroadcastReceived("Vernichtung") {
+		deleteClone();
+    }
+
+    // Klone platzieren
+    onCloneCreated {
+
+        setSize(200);
+        goToSprite("_random_");
+
+        repeatUntil (
+            touching("Block") == false &&
+            touching("_edge_") == false &&
+            touching("MouseHitbox") == false &&
+            touching("Finish") == false
+        ) {
+            goToSprite("_random_");
+        }
+
+        setSize(100);
+
+        // Platzierung abgeschlossen
+        fertigeBloecke ++;
+    }
+}
+
+public Sprite Finish {
+
+    public shown var Level = 0;
+
+    addCostume("Button2-a");
+
+    void startTp() {
+
+    	goToSprite("_random_");
+
+        repeatUntil (
+            touching("Block") == false &&
+            touching("_edge_") == false &&
+            touching("MouseHitbox") == false &&
+            touching("Finish") == false
+        ) {
+            goToSprite("_random_");
+        }
+    }
+
+    // Ziel beim Start platzieren
+    onFlagClicked {
+        Level = 0;
+        startTp();
+    }
+
+    // Berührung erkennen
+    onFlagClicked {
+        forever {
+
+            if (touching("Mouse")) {
+            	
+				broadcast("Vernichtung");
+                broadcast("NextLevel");
+                Movement--;
+
+                // Erst wieder auslösen, wenn Maus weg ist
+                waitUntil (touching("Mouse") == false);
+            }
+        }
+    }
+
+
+    // Neues Level
+    onBroadcastReceived("NextLevel") {
+
+        Level ++;
+
+        // Nur das Ziel teleportieren
+        startTp();
+    }
+}

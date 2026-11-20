@@ -1,0 +1,1 @@
+Here are example projects stored, which got compiled by ScrapeLang.

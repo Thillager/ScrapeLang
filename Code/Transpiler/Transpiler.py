@@ -3063,6 +3063,54 @@ def build_project(ast: dict, asset_mgr: AssetManager) -> dict:
     # Zusätzliche Integritätsprüfung: Broadcast-IDs über alle Targets angleichen.
     _normalize_project_broadcasts(targets)
 
+    # Scratch speichert Variablenanzeigen als eigene Monitor-Einträge in
+    # project.json. Ohne diese Einträge können mehrere per showVar() aktivierte
+    # Monitore vom Player an derselben Standardposition angelegt werden.
+    # Deshalb vorab für jede Variable einen Monitor mit fester, eigener
+    # Position anlegen. showVar()/hideVar() und die entsprechenden
+    # Deklarations-Modifier steuern anschließend weiterhin dessen Sichtbarkeit.
+    shown_variables: set[tuple[str | None, str]] = set()
+    for target_node in ast.get("targets", []):
+        is_stage_node = target_node.get("type") == "Stage"
+        target_name = None if is_stage_node else target_node.get("name")
+        for script in target_node.get("scripts", []):
+            for stmt in script.get("body", []):
+                if stmt.get("type") != "VarDecl" or stmt.get("display", "hidden") != "shown":
+                    continue
+                # Globale/public Variablen gehören auf die Stage; private
+                # Sprite-Variablen behalten den Namen ihres Sprites.
+                monitor_sprite = (None if is_stage_node or stmt.get("scope") != "private"
+                                  else target_name)
+                shown_variables.add((monitor_sprite, stmt["name"]))
+
+    monitors = []
+    monitor_index = 0
+    for target in targets:
+        sprite_name = None if target.get("isStage") else target.get("name")
+        for variable_id, entry in target.get("variables", {}).items():
+            if not isinstance(entry, list) or not entry:
+                continue
+            variable_name = str(entry[0])
+            monitor_sprite = sprite_name
+            monitor = {
+                "id": variable_id,
+                "mode": "default",
+                "opcode": "data_variable",
+                "params": {"VARIABLE": variable_name},
+                "spriteName": monitor_sprite,
+                "value": entry[1] if len(entry) > 1 else 0,
+                "width": 0,
+                "height": 0,
+                "x": 5,
+                "y": 5 + monitor_index * 5,
+                "visible": (monitor_sprite, variable_name) in shown_variables,
+                "sliderMin": 0,
+                "sliderMax": 100,
+                "isDiscrete": True,
+            }
+            monitors.append(monitor)
+            monitor_index += 1
+
     extensions = list(ast.get("extensions", []))
     _EXT_PREFIXES = {
         "pen_":               "pen",
@@ -3083,7 +3131,7 @@ def build_project(ast: dict, asset_mgr: AssetManager) -> dict:
                        for b in t["blocks"].values()) for t in targets):
                 extensions.append(ext_id)
 
-    return {"targets":targets,"monitors":[],"extensions":extensions,
+    return {"targets":targets,"monitors":monitors,"extensions":extensions,
             "meta":{"semver":"3.0.0","vm":"0.2.0","agent":"scrape-transpiler/6.0"}}
 
 

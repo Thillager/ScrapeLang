@@ -30,12 +30,6 @@ public class Main extends JFrame {
 		final String insert;
 		final String label;
 		final String description;
-		/**
-		 * Cursor-Rückversatz relativ zum Ende des RAW-Insert-Strings (vor
-		 * Einrückungsexpansion).  confirmSelection() rechnet diesen Wert korrekt
-		 * auf den expandierten String um – daher muss cursorBack nur für den
-		 * unveränderten Insert-String stimmen.
-		 */
 		final int cursorBack;
 
 		AcEntry(String trigger, String insert, String label, String description, int cursorBack) {
@@ -62,10 +56,10 @@ public class Main extends JFrame {
 		ac("import",        "import \"\";",                     "import",              "Erweiterung importieren",                           2);
 
 		ac("onFlagClicked",       "onFlagClicked {\n\t\n}",                         "onFlagClicked",              "Wird bei Klick auf grüne Flagge ausgeführt",       2);
-		ac("onKeyPressed",        "onKeyPressed(\"\") {\n\t\n}",               "onKeyPressed(\"key\")",       "Wird bei Tastenklick ausgeführt",                  11);
+		ac("onKeyPressed",        "onKeyPressed(\"\") {\n\t\n}",               "onKeyPressed(\"key\")",       "Wird bei Tastenklick ausgeführt",                  8);
 		ac("onSpriteClicked",     "onSpriteClicked {\n\t\n}",                       "onSpriteClicked",            "Wird bei Klick auf diesen Sprite ausgeführt",       2);
-		ac("onBackdropChanged",   "onBackdropChanged(\"Backdrop1\") {\n\t\n}",      "onBackdropChanged(\"name\")", "Wird bei Hintergrundwechsel ausgeführt",            11);
-		ac("onBroadcastReceived", "onBroadcastReceived(\"message\") {\n\t\n}",      "onBroadcastReceived(\"msg\")", "Wird bei Nachrichtenempfang ausgeführt",           11);
+		ac("onBackdropChanged",   "onBackdropChanged(\"\") {\n\t\n}",      "onBackdropChanged(\"name\")", "Wird bei Hintergrundwechsel ausgeführt",            8);
+		ac("onBroadcastReceived", "onBroadcastReceived(\"\") {\n\t\n}",      "onBroadcastReceived(\"msg\")", "Wird bei Nachrichtenempfang ausgeführt",           8);
 
 		ac("repeat",       "repeat () {\n\t\n}",               "repeat(n)",           "Wiederholt einen Block n-mal",                      7);
 		ac("forever",      "forever {\n\t\n}",                 "forever",             "Wiederholt einen Block für immer",                   2);
@@ -78,7 +72,7 @@ public class Main extends JFrame {
 		ac("deleteClone",  "deleteClone();",                    "deleteClone()",       "Löscht den aktuellen Klon",                         0);
 
 		ac("wait",         "wait();",                           "wait(secs)",          "Wartet n Sekunden",                                 2);
-		ac("createClone",  "createClone(\"myself\");",          "createClone(\"name\")", "Erstellt einen Klon: myself oder Sprite-Name",     10);
+		ac("createClone",  "createClone(\"myself\");",          "createClone(\"name\")", "Erstellt einen Klon: myself oder Sprite-Name",     3);
 
 		ac("move",         "move();",                           "move(steps)",         "Bewegt Sprite um n Schritte",                       2);
 		ac("turnLeft",     "turnLeft();",                       "turnLeft(degrees)",   "Dreht Sprite links um n Grad",                      2);
@@ -94,7 +88,7 @@ public class Main extends JFrame {
 		ac("changeX",      "changeX();",                        "changeX(dx)",         "Ändert X-Position um dx",                           2);
 		ac("changeY",      "changeY();",                        "changeY(dy)",         "Ändert Y-Position um dy",                           2);
 		ac("bounceOnEdge", "bounceOnEdge();",                   "bounceOnEdge()",      "Prallt am Rand ab",                                 0);
-		ac("setRotationStyle", "setRotationStyle(\"left-right\");", "setRotationStyle(\"..\")", "Drehstil: left-right / don't rotate / all around", 14);
+		ac("setRotationStyle", "setRotationStyle(\"left-right\");", "setRotationStyle(\"..\")", "Drehstil: left-right / don't rotate / all around", 3);
 
 		ac("say",            "say(\"\");",                      "say(\"text\")",          "Sprechblase anzeigen (dauerhaft)",               3);
 		ac("sayFor",         "sayFor(\"\", );",                 "sayFor(\"text\", secs)", "Sprechblase für n Sekunden",                     4);
@@ -113,8 +107,8 @@ public class Main extends JFrame {
 		ac("goToBack",       "goToBack();",                     "goToBack()",               "Schickt Sprite in den Hintergrund",             0);
 		ac("goForwardLayers","goForwardLayers();",              "goForwardLayers(n)",        "Bewegt Sprite n Ebenen nach vorne",            2);
 		ac("goBackwardLayers","goBackwardLayers();",            "goBackwardLayers(n)",       "Bewegt Sprite n Ebenen nach hinten",           2);
-		ac("setEffect",      "setEffect(\"color\", );",         "setEffect(\"name\", val)",  "Setzt Grafikeffekt: color/fisheye/whirl/...",  4);
-		ac("changeEffect",   "changeEffect(\"color\", );",      "changeEffect(\"name\", val)","Ändert Grafikeffekt",                         4);
+		ac("setEffect",      "setEffect(\"color\", );",         "setEffect(\"name\", val)",  "Setzt Grafikeffekt: color/fisheye/whirl/...",  3);
+		ac("changeEffect",   "changeEffect(\"color\", );",      "changeEffect(\"name\", val)","Ändert Grafikeffekt",                         3);
 		ac("clearEffects",   "clearEffects();",                 "clearEffects()",            "Entfernt alle Grafikeffekte",                  0);
 
 		ac("playSound",          "playSound(\"\");",            "playSound(\"name\")",         "Startet Sound (ohne warten)",                3);
@@ -126,7 +120,7 @@ public class Main extends JFrame {
 		ac("broadcast",        "broadcast(\"\");",           "broadcast(\"msg\")",          "Sendet eine Nachricht",                         3);
 		ac("broadcastAndWait", "broadcastAndWait(\"\");",    "broadcastAndWait(\"msg\")",   "Sendet Nachricht und wartet bis alle fertig",   3);
 		ac("askAndWait",       "askAndWait(\"\");",          "askAndWait(\"frage\")",        "Fragt und wartet auf Antwort (→ answer)",      3);
-		ac("setDragMode",      "setDragMode(\"draggable\");","setDragMode(\"draggable\")",   "Ziehmodus: draggable / not draggable",         12);
+		ac("setDragMode",      "setDragMode(\"draggable\");","setDragMode(\"draggable\")",   "Ziehmodus: draggable / not draggable",         3);
 		ac("resetTimer",       "resetTimer();",              "resetTimer()",                 "Setzt den Timer zurück",                       0);
 
 		ac("showVar",  "showVar(\"\");",                     "showVar(\"name\")",   "Zeigt Variablen-Monitor an",                           3);
@@ -159,14 +153,14 @@ public class Main extends JFrame {
 		ac("videoOff",                "videoOff();",                      "videoOff()",                       "Kamera ausschalten",                         0);
 		ac("videoFlipped",            "videoFlipped();",                  "videoFlipped()",                   "Kamera gespiegelt einschalten",              0);
 		ac("setVideoTransparency",    "setVideoTransparency();",          "setVideoTransparency(percent)",    "Kamera-Transparenz setzen (0–100)",          2);
-		ac("videoMotion",             "videoMotion(\"this sprite\")",     "videoMotion(\"subject\")",         "Videobewegung auf Objekt (Ausdruck)",        1);
-		ac("videoDirection",          "videoDirection(\"this sprite\")",  "videoDirection(\"subject\")",      "Videorichtung auf Objekt (Ausdruck)",        1);
+		ac("videoMotion",             "videoMotion(\"\")",                "videoMotion(\"subject\")",         "Videobewegung auf Objekt (Ausdruck)",        2);
+		ac("videoDirection",          "videoDirection(\"\")",             "videoDirection(\"subject\")",      "Videorichtung auf Objekt (Ausdruck)",        2);
 
 		ac("speak",        "speak(\"\");",          "speak(\"text\")",          "Text vorlesen (wartet bis fertig)",                   3);
-		ac("setVoice",     "setVoice(\"Alto\");",   "setVoice(\"Alto\")",       "Stimme: Alto, Tenor, Squeak, Giant, Kitten",          6);
-		ac("setLanguage",  "setLanguage(\"de\");",  "setLanguage(\"de\")",      "Sprache setzen (z.B. \"de\", \"en\", \"fr\")",        4);
+		ac("setVoice",     "setVoice(\"Alto\");",   "setVoice(\"Alto\")",       "Stimme: Alto, Tenor, Squeak, Giant, Kitten",          3);
+		ac("setLanguage",  "setLanguage(\"de\");",  "setLanguage(\"de\")",      "Sprache setzen (z.B. \"de\", \"en\", \"fr\")",        3);
 
-		ac("translate",       "translate(\"\", \"de\")",   "translate(text, \"lang\")",   "Text übersetzen (Ausdruck)",         6);
+		ac("translate",       "translate(\"\", \"de\")",   "translate(text, \"lang\")",   "Text übersetzen (Ausdruck)",         3);
 		ac("viewerLanguage",  "viewerLanguage",             "viewerLanguage",              "Sprache des Betrachters (Ausdruck)", 0);
 
 		ac("Math.random",  "Math.random(, )",              "Math.random(von, bis)",  "Zufallszahl zwischen von und bis",                 2);
@@ -186,8 +180,8 @@ public class Main extends JFrame {
 
 		ac(".add",       ".add(\"\");",                     ".add(\"wert\")",           "Fügt Element zur Liste hinzu",                    3);
 		ac(".delete",    ".delete();",                      ".delete(index)",           "Löscht Element an Position",                      2);
-		ac(".insert",    ".insert(, \"\");",                ".insert(index, \"wert\")", "Fügt Element an Position ein",                   4);
-		ac(".replace",   ".replace(, \"\");",               ".replace(index, \"wert\")","Ersetzt Element an Position",                    4);
+		ac(".insert",    ".insert(, \"\");",                ".insert(index, \"wert\")", "Fügt Element an Position ein",                   3);
+		ac(".replace",   ".replace(, \"\");",               ".replace(index, \"wert\")","Ersetzt Element an Position",                    3);
 		ac(".length",    ".length()",                       ".length()",                "Anzahl der Elemente in der Liste",                1);
 		ac(".contains",  ".contains(\"\")",                 ".contains(\"wert\")",      "Prüft ob Liste den Wert enthält",                 2);
 
@@ -210,22 +204,22 @@ public class Main extends JFrame {
 		ac("currentDayOfWeek","currentDayOfWeek",          "currentDayOfWeek", "Aktueller Wochentag (1=Mo, 7=So)",             0);
 
 		ac("onCloneCreated",          "onCloneCreated {\n\t\n}",                      "onCloneCreated",             "Wird bei Klon-Erstellung ausgeführt",             2);
-		ac("onMakeyKeyPressed",       "onMakeyKeyPressed(\"\") {\n\t\n}",        "onMakeyKeyPressed(\"key\")", "Makey Makey Tastendruck",                         11);
-		ac("onMakeyCodePressed",      "onMakeyCodePressed(\"up up down down\") {\n\t\n}", "onMakeyCodePressed(\"seq\")", "Makey Makey Sequenz",                         11);
-		ac("onMicrobitButtonPressed", "onMicrobitButtonPressed(\"A\") {\n\t\n}",        "onMicrobitButtonPressed(\"btn\")", "micro:bit Button gedrückt",                   11);
-		ac("onMicrobitGesture",       "onMicrobitGesture(\"shaken\") {\n\t\n}",       "onMicrobitGesture(\"gest\")", "micro:bit Geste erkannt",                         11);
-		ac("onMicrobitTilted",        "onMicrobitTilted(\"any\") {\n\t\n}",           "onMicrobitTilted(\"dir\")",  "micro:bit Neigung erkannt",                       11);
-		ac("onMicrobitPinConnected",  "onMicrobitPinConnected(\"0\") {\n\t\n}",       "onMicrobitPinConnected(\"pin\")", "micro:bit Pin verbunden",                     11);
-		ac("onEv3ButtonPressed",      "onEv3ButtonPressed(\"1\") {\n\t\n}",           "onEv3ButtonPressed(\"port\")", "EV3 Button gedrückt",                            11);
+		ac("onMakeyKeyPressed",       "onMakeyKeyPressed(\"\") {\n\t\n}",        "onMakeyKeyPressed(\"key\")", "Makey Makey Tastendruck",                         8);
+		ac("onMakeyCodePressed",      "onMakeyCodePressed(\"\") {\n\t\n}", "onMakeyCodePressed(\"seq\")", "Makey Makey Sequenz",                         8);
+		ac("onMicrobitButtonPressed", "onMicrobitButtonPressed(\"\") {\n\t\n}",        "onMicrobitButtonPressed(\"btn\")", "micro:bit Button gedrückt",                   8);
+		ac("onMicrobitGesture",       "onMicrobitGesture(\"\") {\n\t\n}",       "onMicrobitGesture(\"gest\")", "micro:bit Geste erkannt",                         8);
+		ac("onMicrobitTilted",        "onMicrobitTilted(\"\") {\n\t\n}",           "onMicrobitTilted(\"dir\")",  "micro:bit Neigung erkannt",                       8);
+		ac("onMicrobitPinConnected",  "onMicrobitPinConnected(\"\") {\n\t\n}",       "onMicrobitPinConnected(\"pin\")", "micro:bit Pin verbunden",                     8);
+		ac("onEv3ButtonPressed",      "onEv3ButtonPressed(\"\") {\n\t\n}",           "onEv3ButtonPressed(\"port\")", "EV3 Button gedrückt",                            8);
 		ac("onEv3DistanceLessThan",   "onEv3DistanceLessThan() {\n\t\n}",             "onEv3DistanceLessThan(n)",   "EV3 Distanz kleiner als",                        2);
 		ac("onEv3BrightnessLessThan", "onEv3BrightnessLessThan() {\n\t\n}",           "onEv3BrightnessLessThan(n)", "EV3 Helligkeit kleiner als",                       2);
-		ac("onBoostColor",            "onBoostColor(\"red\") {\n\t\n}",               "onBoostColor(\"color\")",    "BOOST Farbe erkannt",                            11);
-		ac("onBoostTilted",           "onBoostTilted(\"any\") {\n\t\n}",              "onBoostTilted(\"dir\")",     "BOOST Neigung erkannt",                          11);
+		ac("onBoostColor",            "onBoostColor(\"\") {\n\t\n}",               "onBoostColor(\"color\")",    "BOOST Farbe erkannt",                            8);
+		ac("onBoostTilted",           "onBoostTilted(\"\") {\n\t\n}",              "onBoostTilted(\"dir\")",     "BOOST Neigung erkannt",                          8);
 		ac("onWedoDistance",          "onWedoDistance(\"<\", 20) {\n\t\n}",           "onWedoDistance(op, val)",    "WeDo Distanz Bedingung",                         7);
-		ac("onWedoTilted",            "onWedoTilted(\"any\") {\n\t\n}",               "onWedoTilted(\"dir\")",      "WeDo Neigung erkannt",                           11);
-		ac("onGdxGesture",            "onGdxGesture(\"pushed\") {\n\t\n}",            "onGdxGesture(\"gest\")",     "GDX Geste erkannt",                              11);
-		ac("onGdxForce",              "onGdxForce(\"pushed\") {\n\t\n}",              "onGdxForce(\"push\")",       "GDX Kraft erkannt",                              11);
-		ac("onGdxTilted",             "onGdxTilted(\"any\") {\n\t\n}",                "onGdxTilted(\"dir\")",       "GDX Neigung erkannt",                            11);
+		ac("onWedoTilted",            "onWedoTilted(\"\") {\n\t\n}",               "onWedoTilted(\"dir\")",      "WeDo Neigung erkannt",                           8);
+		ac("onGdxGesture",            "onGdxGesture(\"\") {\n\t\n}",            "onGdxGesture(\"gest\")",     "GDX Geste erkannt",                              8);
+		ac("onGdxForce",              "onGdxForce(\"\") {\n\t\n}",              "onGdxForce(\"push\")",       "GDX Kraft erkannt",                              8);
+		ac("onGdxTilted",             "onGdxTilted(\"\") {\n\t\n}",                "onGdxTilted(\"dir\")",       "GDX Neigung erkannt",                            8);
 
 		ac("extensionBlock",          "extensionBlock(\"\", \"\", );",                "extensionBlock(opcode, k, v)", "Low-Level Erweiterungs-Befehl",               4);
 		ac("extensionReporter",       "extensionReporter(\"\")",                      "extensionReporter(opcode)",  "Low-Level Erweiterungs-Reporter",               2);
@@ -236,49 +230,49 @@ public class Main extends JFrame {
 		ac("microbit.displayText",    "microbit.displayText(\"\");",                  "microbit.displayText(\"text\")", "micro:bit Text anzeigen",                      3);
 		ac("microbit.displaySymbol",  "microbit.displaySymbol(\"\");",                "microbit.displaySymbol(\"matrix\")", "micro:bit Symbol anzeigen",                3);
 		ac("microbit.displayClear",   "microbit.displayClear();",                     "microbit.displayClear()",    "micro:bit Anzeige löschen",                     0);
-		ac("microbit.isButtonPressed","microbit.isButtonPressed(\"A\")",                "microbit.isButtonPressed(\"btn\")", "Ist Button gedrückt (Ausdruck)",           2);
-		ac("microbit.isTilted",       "microbit.isTilted(\"any\")",                   "microbit.isTilted(\"dir\")", "Ist geneigt (Ausdruck)",                        2);
-		ac("microbit.getTiltAngle",   "microbit.getTiltAngle(\"any\")",               "microbit.getTiltAngle(\"dir\")", "Neigungswinkel ermitteln (Ausdruck)",        2);
+		ac("microbit.isButtonPressed","microbit.isButtonPressed(\"\")",                "microbit.isButtonPressed(\"btn\")", "Ist Button gedrückt (Ausdruck)",           2);
+		ac("microbit.isTilted",       "microbit.isTilted(\"\")",                   "microbit.isTilted(\"dir\")", "Ist geneigt (Ausdruck)",                        2);
+		ac("microbit.getTiltAngle",   "microbit.getTiltAngle(\"\")",               "microbit.getTiltAngle(\"dir\")", "Neigungswinkel ermitteln (Ausdruck)",        2);
 
-		ac("ev3.motorTurnClockwise",  "ev3.motorTurnClockwise(\"A\", );",             "ev3.motorTurnClockwise(port, t)", "Motor im Uhrzeigersinn drehen",             3);
-		ac("ev3.motorTurnCounterClockwise", "ev3.motorTurnCounterClockwise(\"A\", );", "ev3.motorTurnCounterClockwise(port, t)", "Motor gegen Uhrzeigersinn",         3);
-		ac("ev3.motorSetPower",       "ev3.motorSetPower(\"A\", );",                  "ev3.motorSetPower(port, pow)",   "Motorleistung setzen",                       3);
-		ac("ev3.getMotorPosition",    "ev3.getMotorPosition(\"A\")",                  "ev3.getMotorPosition(port)",     "Motorposition (Ausdruck)",                   2);
-		ac("ev3.buttonPressed",       "ev3.buttonPressed(\"1\")",                     "ev3.buttonPressed(port)",        "EV3 Button gedrückt (Ausdruck)",             2);
+		ac("ev3.motorTurnClockwise",  "ev3.motorTurnClockwise(\"\", );",             "ev3.motorTurnClockwise(port, t)", "Motor im Uhrzeigersinn drehen",             3);
+		ac("ev3.motorTurnCounterClockwise", "ev3.motorTurnCounterClockwise(\"\", );", "ev3.motorTurnCounterClockwise(port, t)", "Motor gegen Uhrzeigersinn",         3);
+		ac("ev3.motorSetPower",       "ev3.motorSetPower(\"\", );",                  "ev3.motorSetPower(port, pow)",   "Motorleistung setzen",                       3);
+		ac("ev3.getMotorPosition",    "ev3.getMotorPosition(\"\")",                  "ev3.getMotorPosition(port)",     "Motorposition (Ausdruck)",                   2);
+		ac("ev3.buttonPressed",       "ev3.buttonPressed(\"\")",                     "ev3.buttonPressed(port)",        "EV3 Button gedrückt (Ausdruck)",             2);
 		ac("ev3.getDistance",         "ev3.getDistance()",                            "ev3.getDistance()",              "EV3 Distanz (Ausdruck)",                     0);
 		ac("ev3.getBrightness",       "ev3.getBrightness()",                          "ev3.getBrightness()",            "EV3 Helligkeit (Ausdruck)",                  0);
 		ac("ev3.beep",                "ev3.beep(, );",                                "ev3.beep(note, time)",           "EV3 Piepton abspielen",                      3);
 
-		ac("boost.motorOnFor",        "boost.motorOnFor(\"A\", );",                   "boost.motorOnFor(motor, secs)",  "Motor für Sekunden einschalten",             3);
-		ac("boost.motorOnForRotation","boost.motorOnForRotation(\"A\", );",           "boost.motorOnForRotation(m, rot)", "Motor für Umdrehungen einschalten",        3);
-		ac("boost.motorOn",           "boost.motorOn(\"A\");",                        "boost.motorOn(motor)",           "Motor einschalten",                          2);
-		ac("boost.motorOff",          "boost.motorOff(\"A\");",                       "boost.motorOff(motor)",          "Motor ausschalten",                          2);
-		ac("boost.setMotorPower",     "boost.setMotorPower(\"A\", );",                "boost.setMotorPower(motor, pow)", "Motorleistung setzen",                      3);
-		ac("boost.setMotorDirection", "boost.setMotorDirection(\"A\", \"reverse\");", "boost.setMotorDirection(m, dir)", "Motordrehrichtung setzen",                 11);
-		ac("boost.getMotorPosition",  "boost.getMotorPosition(\"A\")",                "boost.getMotorPosition(motor)",  "Motorposition (Ausdruck)",                   2);
-		ac("boost.seeingColor",       "boost.seeingColor(\"red\")",                   "boost.seeingColor(color)",       "Farbe erkannt (Ausdruck)",                   2);
-		ac("boost.getTiltAngle",      "boost.getTiltAngle(\"any\")",                  "boost.getTiltAngle(dir)",        "Neigungswinkel (Ausdruck)",                  2);
+		ac("boost.motorOnFor",        "boost.motorOnFor(\"\", );",                   "boost.motorOnFor(motor, secs)",  "Motor für Sekunden einschalten",             3);
+		ac("boost.motorOnForRotation","boost.motorOnForRotation(\"\", );",           "boost.motorOnForRotation(m, rot)", "Motor für Umdrehungen einschalten",        3);
+		ac("boost.motorOn",           "boost.motorOn(\"\");",                        "boost.motorOn(motor)",           "Motor einschalten",                          3);
+		ac("boost.motorOff",          "boost.motorOff(\"\");",                       "boost.motorOff(motor)",          "Motor ausschalten",                          3);
+		ac("boost.setMotorPower",     "boost.setMotorPower(\"\", );",                "boost.setMotorPower(motor, pow)", "Motorleistung setzen",                      3);
+		ac("boost.setMotorDirection", "boost.setMotorDirection(\"\", \"\");",        "boost.setMotorDirection(m, dir)", "Motordrehrichtung setzen",                 3);
+		ac("boost.getMotorPosition",  "boost.getMotorPosition(\"\")",                "boost.getMotorPosition(motor)",  "Motorposition (Ausdruck)",                   2);
+		ac("boost.seeingColor",       "boost.seeingColor(\"\")",                   "boost.seeingColor(color)",       "Farbe erkannt (Ausdruck)",                   2);
+		ac("boost.getTiltAngle",      "boost.getTiltAngle(\"\")",                  "boost.getTiltAngle(dir)",        "Neigungswinkel (Ausdruck)",                  2);
 		ac("boost.setLightHue",       "boost.setLightHue();",                         "boost.setLightHue(hue)",         "Lichtharbton setzen",                        2);
 
-		ac("wedo.motorOnFor",         "wedo.motorOnFor(\"motor\", );",                "wedo.motorOnFor(motor, secs)",   "WeDo Motor für Sekunden",                    3);
-		ac("wedo.motorOn",            "wedo.motorOn(\"motor\");",                     "wedo.motorOn(motor)",            "WeDo Motor an",                              2);
-		ac("wedo.motorOff",           "wedo.motorOff(\"motor\");",                    "wedo.motorOff(motor)",           "WeDo Motor aus",                             2);
-		ac("wedo.startMotorPower",    "wedo.startMotorPower(\"motor\", );",           "wedo.startMotorPower(m, pow)",   "WeDo Motorleistung",                         3);
-		ac("wedo.setMotorDirection",  "wedo.setMotorDirection(\"motor\", \"reverse\");", "wedo.setMotorDirection(m, dir)", "WeDo Drehrichtung",                       11);
+		ac("wedo.motorOnFor",         "wedo.motorOnFor(\"\", );",                "wedo.motorOnFor(motor, secs)",   "WeDo Motor für Sekunden",                    3);
+		ac("wedo.motorOn",            "wedo.motorOn(\"\");",                     "wedo.motorOn(motor)",            "WeDo Motor an",                              3);
+		ac("wedo.motorOff",           "wedo.motorOff(\"\");",                    "wedo.motorOff(motor)",           "WeDo Motor aus",                             3);
+		ac("wedo.startMotorPower",    "wedo.startMotorPower(\"\", );",           "wedo.startMotorPower(m, pow)",   "WeDo Motorleistung",                         3);
+		ac("wedo.setMotorDirection",  "wedo.setMotorDirection(\"\", \"\");",     "wedo.setMotorDirection(m, dir)", "WeDo Drehrichtung",                       3);
 		ac("wedo.setLightHue",        "wedo.setLightHue();",                          "wedo.setLightHue(hue)",          "WeDo Lichtfarbe",                            2);
 		ac("wedo.playNote",           "wedo.playNote(, );",                           "wedo.playNote(note, beats)",     "WeDo Note spielen",                          3);
 		ac("wedo.getDistance",        "wedo.getDistance()",                           "wedo.getDistance()",             "WeDo Distanz (Ausdruck)",                    0);
-		ac("wedo.isTilted",           "wedo.isTilted(\"any\")",                       "wedo.isTilted(dir)",             "WeDo Neigung (Ausdruck)",                    2);
-		ac("wedo.getTiltAngle",       "wedo.getTiltAngle(\"any\")",                   "wedo.getTiltAngle(dir)",         "WeDo Neigungswinkel (Ausdruck)",             2);
+		ac("wedo.isTilted",           "wedo.isTilted(\"\")",                       "wedo.isTilted(dir)",             "WeDo Neigung (Ausdruck)",                    2);
+		ac("wedo.getTiltAngle",       "wedo.getTiltAngle(\"\")",                   "wedo.getTiltAngle(dir)",         "WeDo Neigungswinkel (Ausdruck)",             2);
 
 		ac("gdx.getForce",            "gdx.getForce()",                               "gdx.getForce()",                 "GDX Kraft (Ausdruck)",                       0);
 		ac("gdx.force",               "gdx.force",                                    "gdx.force",                      "GDX Kraft (Ausdruck)",                       0);
-		ac("gdx.isTilted",            "gdx.isTilted(\"any\")",                        "gdx.isTilted(dir)",              "GDX geneigt (Ausdruck)",                     2);
-		ac("gdx.getTilt",             "gdx.getTilt(\"x\")",                           "gdx.getTilt(dir)",               "GDX Neigung (Ausdruck)",                     2);
-		ac("gdx.getSpinSpeed",        "gdx.getSpinSpeed(\"x\")",                      "gdx.getSpinSpeed(dir)",          "GDX Drehgeschwindigkeit (Ausdruck)",         2);
-		ac("gdx.spinSpeed",           "gdx.spinSpeed(\"x\")",                         "gdx.spinSpeed(dir)",             "GDX Drehgeschwindigkeit (Ausdruck)",         2);
-		ac("gdx.getAcceleration",     "gdx.getAcceleration(\"x\")",                   "gdx.getAcceleration(dir)",       "GDX Beschleunigung (Ausdruck)",              2);
-		ac("gdx.acceleration",        "gdx.acceleration(\"x\")",                      "gdx.acceleration(dir)",          "GDX Beschleunigung (Ausdruck)",              2);
+		ac("gdx.isTilted",            "gdx.isTilted(\"\")",                        "gdx.isTilted(dir)",              "GDX geneigt (Ausdruck)",                     2);
+		ac("gdx.getTilt",             "gdx.getTilt(\"\")",                           "gdx.getTilt(dir)",               "GDX Neigung (Ausdruck)",                     2);
+		ac("gdx.getSpinSpeed",        "gdx.getSpinSpeed(\"\")",                      "gdx.getSpinSpeed(dir)",          "GDX Drehgeschwindigkeit (Ausdruck)",         2);
+		ac("gdx.spinSpeed",           "gdx.spinSpeed(\"\")",                         "gdx.spinSpeed(dir)",             "GDX Drehgeschwindigkeit (Ausdruck)",         2);
+		ac("gdx.getAcceleration",     "gdx.getAcceleration(\"\")",                   "gdx.getAcceleration(dir)",       "GDX Beschleunigung (Ausdruck)",              2);
+		ac("gdx.acceleration",        "gdx.acceleration(\"\")",                      "gdx.acceleration(dir)",          "GDX Beschleunigung (Ausdruck)",              2);
 		ac("gdx.isFreeFalling",       "gdx.isFreeFalling()",                          "gdx.isFreeFalling()",            "GDX im freien Fall (Ausdruck)",              0);
 		ac("gdx.freefalling",         "gdx.freefalling()",                            "gdx.freefalling()",              "GDX im freien Fall (Ausdruck)",              0);
 
@@ -290,7 +284,7 @@ public class Main extends JFrame {
 		ac("music.rest",              "music.rest();",                                "music.rest(beats)",              "Pause machen",                               2);
 		ac("music.playNote",          "music.playNote(, );",                          "music.playNote(note, beats)",    "Note spielen",                               3);
 
-		ac("video.toggle",            "video.toggle(\"on\");",                        "video.toggle(\"state\")",        "Video ein/aus/gespiegelt",                   3);
+		ac("video.toggle",            "video.toggle(\"\");",                        "video.toggle(\"state\")",        "Video ein/aus/gespiegelt",                   3);
 		ac("video.setTransparency",   "video.setTransparency();",                     "video.setTransparency(percent)", "Video-Transparenz setzen",                   2);
 
 		ac("keyPressed",              "keyPressed(\"\")",                        "keyPressed(\"key\")",            "Taste gedrückt? (Ausdruck)",                 2);
@@ -337,7 +331,7 @@ public class Main extends JFrame {
 			list.setCellRenderer(new DefaultListCellRenderer() {
 				@Override
 				public Component getListCellRendererComponent(JList<?> l, Object value,
-						int index, boolean isSelected, boolean hasFocus) {
+															  int index, boolean isSelected, boolean hasFocus) {
 					AcEntry e = (AcEntry) value;
 					JPanel  p = new JPanel(new BorderLayout(8, 0));
 
@@ -366,8 +360,8 @@ public class Main extends JFrame {
 			});
 
 			scroll = new JScrollPane(list,
-				JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-				JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+					JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+					JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 			updateBorderColors();
 
 			popup.getContentPane().add(scroll);
@@ -384,7 +378,6 @@ public class Main extends JFrame {
 			scroll.setBorder(BorderFactory.createLineBorder(isDark ? new Color(70, 70, 70) : new Color(180, 180, 180)));
 		}
 
-		/** Muss auf dem EDT aufgerufen werden. */
 		void show(List<AcEntry> entries, int tokenStart, Point screenPos) {
 			assert SwingUtilities.isEventDispatchThread();
 			this.tokenStart = tokenStart;
@@ -408,7 +401,6 @@ public class Main extends JFrame {
 			popup.setVisible(true);
 		}
 
-		/** Muss auf dem EDT aufgerufen werden. */
 		void hide() {
 			assert SwingUtilities.isEventDispatchThread();
 			popup.setVisible(false);
@@ -431,15 +423,6 @@ public class Main extends JFrame {
 			list.ensureIndexIsVisible(list.getSelectedIndex());
 		}
 
-		/**
-		 * Expandiert den Raw-Insert-String unter Berücksichtigung der
-		 * aktuellen Zeileneinrückung und berechnet dabei den Cursor-Offset
-		 * korrekt aus dem Raw-String heraus.
-		 *
-		 * Fix: Im Original wurde cursorBack vom Ende des EXPANDIERTEN Strings
-		 * abgezogen, obwohl er für den RAW-String definiert ist. Jetzt wird
-		 * die Raw-Position zuerst auf den expandierten String gemappt.
-		 */
 		boolean confirmSelection() {
 			AcEntry sel = list.getSelectedValue();
 			if (sel == null) return false;
@@ -449,21 +432,22 @@ public class Main extends JFrame {
 				Document doc      = textArea.getDocument();
 				String   fullText = doc.getText(0, caretPos);
 
-				// Einrückung der aktuellen Zeile ermitteln (echte Tabs behalten)
 				int lineStart = fullText.lastIndexOf('\n') + 1;
 				String linePrefix = fullText.substring(lineStart);
 				StringBuilder indent = new StringBuilder();
 				for (char c : linePrefix.toCharArray()) {
-					if (c == ' ' || c == '\t') indent.append(c);
-					else break;
+					if (c == '\t') {
+						indent.append('\t');
+					} else if (c == ' ') {
+						continue;
+					} else {
+						break;
+					}
 				}
 				String baseIndent = indent.toString();
 
 				String raw = sel.insert;
 
-				// ── Schritt 1: Expandierten String aufbauen UND Raw→Built-Mapping erzeugen ──
-				// Für jede Position i im Raw-String wird die entsprechende
-				// Position im Built-String gespeichert.
 				int[] rawToBuilt = new int[raw.length() + 1];
 				StringBuilder built = new StringBuilder();
 
@@ -474,9 +458,7 @@ public class Main extends JFrame {
 						rawToBuilt[i] = built.length();
 						built.append('\n');
 						i++;
-						// Basis-Einrückung einfügen
 						built.append(baseIndent);
-						// Tabs aus Raw-String konsumieren und mappen
 						while (i < raw.length() && raw.charAt(i) == '\t') {
 							rawToBuilt[i] = built.length();
 							built.append('\t');
@@ -488,19 +470,14 @@ public class Main extends JFrame {
 						i++;
 					}
 				}
-				rawToBuilt[raw.length()] = built.length(); // End-Sentinel
+				rawToBuilt[raw.length()] = built.length();
 
 				String finalInsert = built.toString();
 
-				// ── Schritt 2: Cursor-Position korrekt berechnen ──
-				// cursorBack bezieht sich auf die RAW-String-Länge, nicht auf
-				// die expandierte Länge.
 				int rawCursorPos   = raw.length() - sel.cursorBack;
-				// Clamp für Robustheit
 				rawCursorPos = Math.max(0, Math.min(rawCursorPos, raw.length()));
 				int builtCursorPos = rawToBuilt[rawCursorPos];
 
-				// ── Schritt 3: Text ersetzen und Cursor setzen ──
 				int replaceLen = caretPos - tokenStart;
 				doc.remove(tokenStart, replaceLen);
 				doc.insertString(tokenStart, finalInsert, null);
@@ -525,14 +502,12 @@ public class Main extends JFrame {
 		private final RSyntaxTextArea textArea;
 		private final AutocompletePopup popup;
 
-		// Matching läuft außerhalb des Swing-EDT. So blockiert die Suche
-		// weder Tippen noch Löschen, selbst wenn viele Treffer existieren.
 		private final java.util.concurrent.ExecutorService matcher =
-			java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
-				Thread t = new Thread(r, "autocomplete-matcher");
-				t.setDaemon(true);
-				return t;
-			});
+				java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+					Thread t = new Thread(r, "autocomplete-matcher");
+					t.setDaemon(true);
+					return t;
+				});
 
 		private final javax.swing.Timer debounce;
 		private static final int DEBOUNCE_MS = 70;
@@ -607,7 +582,6 @@ public class Main extends JFrame {
 
 		private void scheduleUpdate() {
 			assert SwingUtilities.isEventDispatchThread();
-			// Jede Änderung macht ältere, noch laufende Suchergebnisse ungültig.
 			requestId++;
 			debounce.restart();
 		}
@@ -619,7 +593,6 @@ public class Main extends JFrame {
 			final int caretPos = textArea.getCaretPosition();
 			final String text;
 			try {
-				// Nur bis zum Cursor lesen, nicht den gesamten Dokumentinhalt.
 				text = textArea.getDocument().getText(0, caretPos);
 			} catch (BadLocationException ex) {
 				popup.hide();
@@ -643,7 +616,6 @@ public class Main extends JFrame {
 			matcher.execute(() -> {
 				List<AcEntry> matches = findMatches(token);
 				SwingUtilities.invokeLater(() -> {
-					// Nie einen alten Suchlauf über einen neueren UI-Stand malen.
 					if (id != requestId || textArea.getCaretPosition() != caretPos) return;
 					if (matches.isEmpty()) {
 						popup.hide();
@@ -662,12 +634,6 @@ public class Main extends JFrame {
 			});
 		}
 
-		/**
-		 * Liefert höchstens zehn Treffer. Prefix-Treffer kommen zuerst,
-		 * danach Teilstring-Treffer. Keine contains()-Prüfung auf einer
-		 * wachsenden Ergebnisliste und keine unnötigen UI-Updates für
-		 * hunderte unsichtbare Einträge.
-		 */
 		private static List<AcEntry> findMatches(String token) {
 			String lower = token.toLowerCase(Locale.ROOT);
 			List<AcEntry> result = new ArrayList<>(10);
@@ -822,7 +788,6 @@ public class Main extends JFrame {
 		textArea.setCodeFoldingEnabled(true);
 		textArea.setAntiAliasingEnabled(true);
 		textArea.setTabSize(4);
-		// FIX: Tabs sollen echte Tab-Zeichen bleiben, keine Leerzeichen
 		textArea.setTabsEmulated(false);
 
 		RTextScrollPane scrollPane = new RTextScrollPane(textArea);
@@ -888,19 +853,19 @@ public class Main extends JFrame {
 		ActionMap am = getRootPane().getActionMap();
 
 		bind(im, am, KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK, "saveFile",
-			e -> saveFile());
+				e -> saveFile());
 		bind(im, am, KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK, "runTranspiler",
-			e -> runTranspiler(false));
+				e -> runTranspiler(false));
 		bind(im, am, KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK, "runWatch",
-			e -> runTranspiler(true));
+				e -> runTranspiler(true));
 		bind(im, am, KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK, "stopTranspiler",
-			e -> stopTranspiler());
+				e -> stopTranspiler());
 		bind(im, am, KeyEvent.VK_SPACE, InputEvent.CTRL_DOWN_MASK, "triggerAC",
-			e -> acController.triggerManually());
+				e -> acController.triggerManually());
 	}
 
 	private void bind(InputMap im, ActionMap am, int key, int mod, String name,
-			java.awt.event.ActionListener action) {
+					  java.awt.event.ActionListener action) {
 		im.put(KeyStroke.getKeyStroke(key, mod), name);
 		am.put(name, new AbstractAction() {
 			@Override public void actionPerformed(java.awt.event.ActionEvent e) { action.actionPerformed(e); }
@@ -921,8 +886,8 @@ public class Main extends JFrame {
 			try (InputStream in = getClass().getResourceAsStream("/" + resourceName)) {
 				if (in == null) {
 					JOptionPane.showMessageDialog(this,
-						resourceName + " wurde nicht im resources-Ordner gefunden!",
-						"Ressource fehlt", JOptionPane.ERROR_MESSAGE);
+							resourceName + " wurde nicht im resources-Ordner gefunden!",
+							"Ressource fehlt", JOptionPane.ERROR_MESSAGE);
 					return null;
 				}
 				Files.copy(in, destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -930,8 +895,8 @@ public class Main extends JFrame {
 			return destination;
 		} catch (IOException e) {
 			JOptionPane.showMessageDialog(this,
-				"Die Ressource " + resourceName + " konnte nicht in den Temp-Ordner kopiert werden:\n"
-					+ e.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+					"Die Ressource " + resourceName + " konnte nicht in den Temp-Ordner kopiert werden:\n"
+							+ e.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
 			return null;
 		}
 	}
@@ -964,12 +929,12 @@ public class Main extends JFrame {
 		Process process;
 		try {
 			process = new ProcessBuilder(command).directory(workingDirectory)
-				.redirectErrorStream(true).start();
+					.redirectErrorStream(true).start();
 		} catch (IOException first) {
 			if (!os.contains("win")) throw first;
 			command.set(0, "python3");
 			process = new ProcessBuilder(command).directory(workingDirectory)
-				.redirectErrorStream(true).start();
+					.redirectErrorStream(true).start();
 		}
 
 		StringBuilder output = new StringBuilder();
@@ -1004,8 +969,8 @@ public class Main extends JFrame {
 					sb3LoadInProgress = false;
 					try { get(); } catch (Exception ex) {
 						JOptionPane.showMessageDialog(Main.this,
-							"Fehler beim Laden der .sb3-Datei: " + ex.getMessage(),
-							"Fehler", JOptionPane.ERROR_MESSAGE);
+								"Fehler beim Laden der .sb3-Datei: " + ex.getMessage(),
+								"Fehler", JOptionPane.ERROR_MESSAGE);
 					}
 				}
 			}.execute();
@@ -1027,15 +992,14 @@ public class Main extends JFrame {
 			File outputFile = new File(workspace, "opened-project.scrape");
 			Files.deleteIfExists(outputFile.toPath());
 			ProcessResult result = runPython(script,
-				Arrays.asList(file.getAbsolutePath(), "--output", outputFile.getAbsolutePath()), workspace);
+					Arrays.asList(file.getAbsolutePath(), "--output", outputFile.getAbsolutePath()), workspace);
 
 			if (result.exitCode != 0 || !outputFile.isFile()) {
-				// Fehlermeldung auf EDT anzeigen
 				final String msg = result.output;
 				SwingUtilities.invokeLater(() ->
-					JOptionPane.showMessageDialog(this,
-						"Die .sb3-Datei konnte nicht mit dem Detranspiler geöffnet werden.\n\n" + msg,
-						"Detranspiler-Fehler", JOptionPane.ERROR_MESSAGE));
+						JOptionPane.showMessageDialog(this,
+								"Die .sb3-Datei konnte nicht mit dem Detranspiler geöffnet werden.\n\n" + msg,
+								"Detranspiler-Fehler", JOptionPane.ERROR_MESSAGE));
 				return false;
 			}
 
@@ -1046,7 +1010,6 @@ public class Main extends JFrame {
 				watchSourceChangedSincePreview = true;
 			}
 
-			// UI-Updates auf den EDT verschieben
 			final String finalSource = source;
 			final File   finalFile   = file.getAbsoluteFile();
 			SwingUtilities.invokeLater(() -> {
@@ -1061,9 +1024,9 @@ public class Main extends JFrame {
 		} catch (Exception e) {
 			final String msg = e.getMessage();
 			SwingUtilities.invokeLater(() ->
-				JOptionPane.showMessageDialog(this,
-					"Fehler beim Öffnen der .sb3-Datei: " + msg,
-					"Fehler", JOptionPane.ERROR_MESSAGE));
+					JOptionPane.showMessageDialog(this,
+							"Fehler beim Öffnen der .sb3-Datei: " + msg,
+							"Fehler", JOptionPane.ERROR_MESSAGE));
 			return false;
 		}
 	}
@@ -1090,17 +1053,17 @@ public class Main extends JFrame {
 
 	private boolean sameFilePath(File a, File b) {
 		return a != null && b != null && a.getAbsoluteFile().toPath().normalize()
-			.equals(b.getAbsoluteFile().toPath().normalize());
+				.equals(b.getAbsoluteFile().toPath().normalize());
 	}
 
 	private File findGeneratedSb3(File workspace) throws IOException {
 		try (java.util.stream.Stream<Path> paths = Files.walk(workspace.toPath(), 4)) {
 			return paths.filter(Files::isRegularFile)
-				.filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".sb3"))
-				.map(Path::toFile)
-				.filter(file -> file.length() > 0)
-				.max(Comparator.comparingLong(File::lastModified))
-				.orElse(null);
+					.filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".sb3"))
+					.map(Path::toFile)
+					.filter(file -> file.length() > 0)
+					.max(Comparator.comparingLong(File::lastModified))
+					.orElse(null);
 		}
 	}
 
@@ -1116,8 +1079,8 @@ public class Main extends JFrame {
 						if (!get()) statusLabel.setText("Speichern fehlgeschlagen.");
 					} catch (Exception ex) {
 						JOptionPane.showMessageDialog(Main.this,
-							"Fehler beim Speichern der .sb3-Datei: " + ex.getMessage(),
-							"Fehler", JOptionPane.ERROR_MESSAGE);
+								"Fehler beim Speichern der .sb3-Datei: " + ex.getMessage(),
+								"Fehler", JOptionPane.ERROR_MESSAGE);
 					}
 				}
 			}.execute();
@@ -1131,10 +1094,10 @@ public class Main extends JFrame {
 			File workspace = ensureTempWorkspace();
 			try (java.util.stream.Stream<Path> paths = Files.walk(workspace.toPath(), 4)) {
 				paths.filter(Files::isRegularFile)
-					.filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".sb3"))
-					.forEach(path -> {
-						try { Files.deleteIfExists(path); } catch (IOException ignored) {}
-					});
+						.filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".sb3"))
+						.forEach(path -> {
+							try { Files.deleteIfExists(path); } catch (IOException ignored) {}
+						});
 			}
 
 			File source = writeTemporaryScrapeSource("export-" + fileStem(currentFile) + ".scrape");
@@ -1143,13 +1106,13 @@ public class Main extends JFrame {
 
 			SwingUtilities.invokeLater(() -> statusLabel.setText("Erzeuge .sb3-Projekt..."));
 			ProcessResult result = runPython(script,
-				Arrays.asList(source.getAbsolutePath(), "--out", new File(workspace, "output.sb3").getAbsolutePath()), workspace);
+					Arrays.asList(source.getAbsolutePath(), "--out", new File(workspace, "output.sb3").getAbsolutePath()), workspace);
 			if (result.exitCode != 0) {
 				final String msg = result.output;
 				SwingUtilities.invokeLater(() ->
-					JOptionPane.showMessageDialog(this,
-						"Der Transpiler konnte die .sb3-Datei nicht erzeugen.\n\n" + msg,
-						"Transpiler-Fehler", JOptionPane.ERROR_MESSAGE));
+						JOptionPane.showMessageDialog(this,
+								"Der Transpiler konnte die .sb3-Datei nicht erzeugen.\n\n" + msg,
+								"Transpiler-Fehler", JOptionPane.ERROR_MESSAGE));
 				return false;
 			}
 
@@ -1157,9 +1120,9 @@ public class Main extends JFrame {
 			if (generated == null) {
 				final String msg = result.output;
 				SwingUtilities.invokeLater(() ->
-					JOptionPane.showMessageDialog(this,
-						"Der Transpiler wurde beendet, aber im Temp-Ordner wurde keine .sb3-Datei gefunden.\n\n" + msg,
-						"Ausgabedatei fehlt", JOptionPane.ERROR_MESSAGE));
+						JOptionPane.showMessageDialog(this,
+								"Der Transpiler wurde beendet, aber im Temp-Ordner wurde keine .sb3-Datei gefunden.\n\n" + msg,
+								"Ausgabedatei fehlt", JOptionPane.ERROR_MESSAGE));
 				return false;
 			}
 
@@ -1175,9 +1138,9 @@ public class Main extends JFrame {
 		} catch (Exception e) {
 			final String msg = e.getMessage();
 			SwingUtilities.invokeLater(() ->
-				JOptionPane.showMessageDialog(this,
-					"Fehler beim Speichern der .sb3-Datei: " + msg,
-					"Fehler", JOptionPane.ERROR_MESSAGE));
+					JOptionPane.showMessageDialog(this,
+							"Fehler beim Speichern der .sb3-Datei: " + msg,
+							"Fehler", JOptionPane.ERROR_MESSAGE));
 			return false;
 		}
 	}
@@ -1222,10 +1185,10 @@ public class Main extends JFrame {
 					File workspace = ensureTempWorkspace();
 					try (java.util.stream.Stream<Path> paths = Files.walk(workspace.toPath(), 4)) {
 						paths.filter(Files::isRegularFile)
-							.filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".sb3"))
-							.forEach(path -> {
-								try { Files.deleteIfExists(path); } catch (IOException ignored) {}
-							});
+								.filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".sb3"))
+								.forEach(path -> {
+									try { Files.deleteIfExists(path); } catch (IOException ignored) {}
+								});
 					}
 
 					File script = extractTranspilerFromResources();
@@ -1235,8 +1198,8 @@ public class Main extends JFrame {
 					}
 
 					ProcessResult res = runPython(script,
-						Arrays.asList(scrapeFile.getAbsolutePath(), "--out", sb3File.getAbsolutePath()),
-						workspace);
+							Arrays.asList(scrapeFile.getAbsolutePath(), "--out", sb3File.getAbsolutePath()),
+							workspace);
 
 					if (res.exitCode != 0 || !sb3File.isFile()) {
 						errorMessage = "Transpiler-Fehler:\n" + res.output;
@@ -1270,7 +1233,7 @@ public class Main extends JFrame {
 		if (currentFile == null) {
 			JFileChooser chooser = new JFileChooser();
 			chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
-				"Scrape- und Scratch-Projekte (*.scrape, *.sb3)", "scrape", "sb3"));
+					"Scrape- und Scratch-Projekte (*.scrape, *.sb3)", "scrape", "sb3"));
 			if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
 			currentFile = chooser.getSelectedFile().getAbsoluteFile();
 			String lower = currentFile.getName().toLowerCase(Locale.ROOT);
@@ -1291,23 +1254,23 @@ public class Main extends JFrame {
 
 		try {
 			File transpilerInput = openingFromSb3
-				? writeTemporaryScrapeSource("live-" + fileStem(currentFile) + ".scrape")
-				: currentFile;
+					? writeTemporaryScrapeSource("live-" + fileStem(currentFile) + ".scrape")
+					: currentFile;
 
 			File workDirectory = transpilerInput.getParentFile();
 			if (workDirectory == null) workDirectory = new File(System.getProperty("user.dir"));
 
 			File previewFile = openingFromSb3
-				? currentFile.getAbsoluteFile()
-				: new File(workDirectory, fileStem(currentFile) + ".sb3").getAbsoluteFile();
+					? currentFile.getAbsoluteFile()
+					: new File(workDirectory, fileStem(currentFile) + ".sb3").getAbsoluteFile();
 
 			String python = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win")
-				? "python" : "python3";
+					? "python" : "python3";
 			String pyCmd = "\"" + python + "\" \"" + script.getAbsolutePath() + "\""
-				+ " \"" + transpilerInput.getAbsolutePath() + "\""
-				+ " --out \"" + previewFile.getAbsolutePath() + "\""
-				+ " --turbowarp-replace"
-				+ (watch ? " --watch" : "");
+					+ " \"" + transpilerInput.getAbsolutePath() + "\""
+					+ " --out \"" + previewFile.getAbsolutePath() + "\""
+					+ " --turbowarp-replace"
+					+ (watch ? " --watch" : "");
 
 			String workDir = workDirectory.getAbsolutePath();
 			List<String> cmd = new ArrayList<>();
@@ -1326,7 +1289,7 @@ public class Main extends JFrame {
 				cmd.add("osascript");
 				cmd.add("-e");
 				cmd.add("tell application \"Terminal\" to do script \"cd \\\""
-					+ workDir.replace("\"", "\\\"") + "\\\" && " + escaped + "\"");
+						+ workDir.replace("\"", "\\\"") + "\\\" && " + escaped + "\"");
 			} else {
 				String terminal = resolveLinuxTerminal();
 				if (terminal.equals("gnome-terminal")) {
@@ -1355,8 +1318,8 @@ public class Main extends JFrame {
 		} catch (IOException e) {
 			clearWatchTracking();
 			JOptionPane.showMessageDialog(this,
-				"Fehler beim Starten des Transpilers: " + e.getMessage(),
-				"Fehler", JOptionPane.ERROR_MESSAGE);
+					"Fehler beim Starten des Transpilers: " + e.getMessage(),
+					"Fehler", JOptionPane.ERROR_MESSAGE);
 			statusLabel.setText("Fehler beim Starten des Transpilers");
 		}
 	}
@@ -1396,17 +1359,17 @@ public class Main extends JFrame {
 	}
 
 	private static final String NEW_FILE_TEMPLATE =
-		"public Stage Buehne {\n" +
-		"\taddBackdrop(\"Forest\");\n" +
-		"}\n" +
-		"\n" +
-		"public Sprite Mouse {\n" +
-		"\taddCostume(\"Mouse1-a\");\n" +
-		"\n" +
-		"\tonFlagClicked {\n" +
-		"\t\t\n" +
-		"\t}\n" +
-		"}\n";
+			"public Stage Buehne {\n" +
+					"\taddBackdrop(\"Forest\");\n" +
+					"}\n" +
+					"\n" +
+					"public Sprite Mouse {\n" +
+					"\taddCostume(\"Mouse1-a\");\n" +
+					"\n" +
+					"\tonFlagClicked {\n" +
+					"\t\t\n" +
+					"\t}\n" +
+					"}\n";
 
 	private void newFile() {
 		currentFile = null;
@@ -1414,7 +1377,6 @@ public class Main extends JFrame {
 		lastKnownFileFingerprint = null;
 		pendingExternalFingerprint = null;
 		textArea.setText(NEW_FILE_TEMPLATE);
-		// Cursor auf die leere Zeile innerhalb von onFlagClicked setzen
 		int pos = NEW_FILE_TEMPLATE.indexOf("\tonFlagClicked {") + "\tonFlagClicked {\n\t\t".length();
 		textArea.setCaretPosition(pos);
 		updateTitle();
@@ -1434,7 +1396,7 @@ public class Main extends JFrame {
 			return true;
 		} catch (IOException e) {
 			JOptionPane.showMessageDialog(this,
-				"Fehler beim Laden: " + e.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+					"Fehler beim Laden: " + e.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
 			return false;
 		}
 	}
@@ -1443,7 +1405,7 @@ public class Main extends JFrame {
 		if (currentFile == null) {
 			JFileChooser chooser = new JFileChooser();
 			chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
-				"Scrape- und Scratch-Projekte (*.scrape, *.sb3)", "scrape", "sb3"));
+					"Scrape- und Scratch-Projekte (*.scrape, *.sb3)", "scrape", "sb3"));
 			if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
 				currentFile = chooser.getSelectedFile();
 				String lower = currentFile.getName().toLowerCase(Locale.ROOT);
@@ -1470,8 +1432,8 @@ public class Main extends JFrame {
 					return true;
 				} catch (IOException e) {
 					JOptionPane.showMessageDialog(this,
-						"Die Watch-Quelldatei konnte nicht gespeichert werden: " + e.getMessage(),
-						"Speicherfehler", JOptionPane.ERROR_MESSAGE);
+							"Die Watch-Quelldatei konnte nicht gespeichert werden: " + e.getMessage(),
+							"Speicherfehler", JOptionPane.ERROR_MESSAGE);
 					return false;
 				}
 			}
@@ -1486,7 +1448,7 @@ public class Main extends JFrame {
 			return true;
 		} catch (IOException e) {
 			JOptionPane.showMessageDialog(this,
-				"Fehler beim Speichern: " + e.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+					"Fehler beim Speichern: " + e.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
 			return false;
 		}
 	}
@@ -1499,7 +1461,7 @@ public class Main extends JFrame {
 	private void openFileDialog() {
 		JFileChooser chooser = new JFileChooser();
 		chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
-			"Scrape- und Scratch-Projekte (*.scrape, *.sb3)", "scrape", "sb3"));
+				"Scrape- und Scratch-Projekte (*.scrape, *.sb3)", "scrape", "sb3"));
 		if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION)
 			loadFile(chooser.getSelectedFile());
 	}
@@ -1536,10 +1498,6 @@ public class Main extends JFrame {
 	}
 
 	private void startExternalFileWatcher() {
-		// FIX: Timer-Callback läuft immer auf dem EDT (javax.swing.Timer)
-		// → alle Felder, die hier gelesen/geschrieben werden, brauchen keine
-		//   weitere Synchronisation, solange sie ausschließlich vom EDT und
-		//   von SwingWorker.done() (EDT) angefasst werden.
 		externalFileCheckTimer = new javax.swing.Timer(900, e -> checkExternalFileForChanges());
 		externalFileCheckTimer.setRepeats(true);
 		externalFileCheckTimer.start();
@@ -1579,7 +1537,6 @@ public class Main extends JFrame {
 	}
 
 	private void checkExternalFileForChanges() {
-		// Läuft auf dem EDT (javax.swing.Timer)
 		if (externalChangePromptOpen || sb3LoadInProgress) return;
 		observeActiveWatchInput();
 
@@ -1697,7 +1654,7 @@ public class Main extends JFrame {
 		JButton copyButton = new JButton("Aktuellen Code kopieren");
 		copyButton.addActionListener(e -> {
 			Toolkit.getDefaultToolkit().getSystemClipboard()
-				.setContents(new StringSelection(textArea.getText()), null);
+					.setContents(new StringSelection(textArea.getText()), null);
 			statusLabel.setText("Aktueller Editor-Code wurde in die Zwischenablage kopiert");
 		});
 		panel.add(copyButton, BorderLayout.SOUTH);
@@ -1705,7 +1662,7 @@ public class Main extends JFrame {
 		int choice;
 		try {
 			choice = JOptionPane.showOptionDialog(this, panel, "TurboWarp-Projekt extern gespeichert",
-				JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
+					JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
 		} finally {
 			externalChangePromptOpen = false;
 		}
@@ -1752,8 +1709,8 @@ public class Main extends JFrame {
 					}
 
 					ProcessResult res = runPython(script,
-						Arrays.asList(sb3File.getAbsolutePath(), "--output", scrapeFile.getAbsolutePath()),
-						workspace);
+							Arrays.asList(sb3File.getAbsolutePath(), "--output", scrapeFile.getAbsolutePath()),
+							workspace);
 
 					if (res.exitCode != 0 || !scrapeFile.isFile()) {
 						errorMessage = "Detranspiler-Fehler:\n" + res.output;
@@ -1794,7 +1751,7 @@ public class Main extends JFrame {
 				if (script == null) throw new IOException("Detranspiler.py konnte nicht geladen werden.");
 				File output = new File(workspace, "turbowarp-saved-project.scrape");
 				ProcessResult result = runPython(script,
-					Arrays.asList(previewFile.getAbsolutePath(), "--output", output.getAbsolutePath()), workspace);
+						Arrays.asList(previewFile.getAbsolutePath(), "--output", output.getAbsolutePath()), workspace);
 				if (result.exitCode != 0 || !output.isFile()) {
 					throw new IOException("Die gespeicherte TurboWarp-Datei konnte nicht umgewandelt werden.\n" + result.output);
 				}
@@ -1821,8 +1778,8 @@ public class Main extends JFrame {
 					statusLabel.setText("TurboWarp-Speicherung wurde in den Scrape-Code übernommen.");
 				} catch (Exception ex) {
 					JOptionPane.showMessageDialog(Main.this,
-						"Fehler beim Übernehmen der TurboWarp-Version: " + ex.getMessage(),
-						"Synchronisierung fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
+							"Fehler beim Übernehmen der TurboWarp-Version: " + ex.getMessage(),
+							"Synchronisierung fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
 					refreshPreviewFingerprint();
 				} finally {
 					externalChangePromptOpen = false;
@@ -1841,7 +1798,7 @@ public class Main extends JFrame {
 		JButton copyButton = new JButton("Aktuellen Code kopieren");
 		copyButton.addActionListener(e -> {
 			Toolkit.getDefaultToolkit().getSystemClipboard()
-				.setContents(new StringSelection(textArea.getText()), null);
+					.setContents(new StringSelection(textArea.getText()), null);
 			statusLabel.setText("Aktueller Editor-Code wurde in die Zwischenablage kopiert");
 		});
 		panel.add(copyButton, BorderLayout.SOUTH);
@@ -1850,8 +1807,8 @@ public class Main extends JFrame {
 		int choice;
 		try {
 			choice = JOptionPane.showOptionDialog(this, panel, "Datei extern geändert",
-				JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
-				null, options, options[0]);
+					JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
+					null, options, options[0]);
 		} finally {
 			externalChangePromptOpen = false;
 		}
@@ -1872,9 +1829,9 @@ public class Main extends JFrame {
 	private void showSettingsDialog() {
 		boolean autoReload = Boolean.parseBoolean(props.getProperty("autoReloadExternalChanges", "false"));
 		JRadioButton warnButton = new JRadioButton(
-			"Bei externen Änderungen warnen und vor dem Laden nachfragen", !autoReload);
+				"Bei externen Änderungen warnen und vor dem Laden nachfragen", !autoReload);
 		JRadioButton autoButton = new JRadioButton(
-			"Neue Version automatisch laden (Editorinhalt wird überschrieben)", autoReload);
+				"Neue Version automatisch laden (Editorinhalt wird überschrieben)", autoReload);
 		ButtonGroup group = new ButtonGroup();
 		group.add(warnButton);
 		group.add(autoButton);
@@ -1887,13 +1844,13 @@ public class Main extends JFrame {
 		panel.add(autoButton);
 
 		int result = JOptionPane.showConfirmDialog(this, panel, "Einstellungen – Dateiüberwachung",
-			JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+				JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 		if (result == JOptionPane.OK_OPTION) {
 			props.setProperty("autoReloadExternalChanges", String.valueOf(autoButton.isSelected()));
 			saveProps();
 			statusLabel.setText(autoButton.isSelected()
-				? "Einstellung gespeichert: externe Änderungen automatisch laden"
-				: "Einstellung gespeichert: vor externen Änderungen warnen");
+					? "Einstellung gespeichert: externe Änderungen automatisch laden"
+					: "Einstellung gespeichert: vor externen Änderungen warnen");
 		}
 	}
 
