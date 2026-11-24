@@ -1,10 +1,10 @@
 """
-Transpiler.py  v6.0
+Transpiler.py  v7.0
 ════════════════════════════
 Scrape (Java-ähnliche Syntax) → .sb3-Projektdatei
 
-Neu in v6.0:
-  • Strukturierte Fehlerdiagnosen mit Code, Zeile, Spalte, Quelltext und Caret.
+Neu in v7.0:
+  • Vier getrennte Compilerphasen: Lexer, Parser, Semantic Analyzer und Bytecode Generator.\n  • Semikolons sind die einzigen Statement-Trenner; Zeilenumbrüche sind bedeutungslos.\n  • Strukturierte Fehlerdiagnosen mit Code, Zeile, Spalte, Quelltext und Caret.
   • Mehrere unabhängige Fehler pro Datei; Parser-Recovery ohne Folge-Statements
     zu verschlucken.
   • Aktionen außerhalb eines on...-Event-Handlers werden fachlich erkannt.
@@ -110,13 +110,13 @@ class AssetManager:
             if age < 7 * 86400:
                 try:
                     lib = json.loads(self._CACHE_FILE.read_text(encoding="utf-8"))
-                    print(f"  📚 Bibliothek aus Cache ({len(lib.get('costumes',{}))} Kostüme, "
+                    print(f"   Bibliothek aus Cache ({len(lib.get('costumes',{}))} Kostüme, "
                           f"{len(lib.get('backdrops',{}))} Hintergründe, "
                           f"{len(lib.get('sounds',{}))} Sounds)")
                     return lib
                 except Exception:
                     pass
-        print("  📚 Lade Bibliothek von GitHub...", end=" ", flush=True)
+        print("   Lade Bibliothek von GitHub...", end=" ", flush=True)
         result = {"costumes": {}, "backdrops": {}, "sounds": {}}
         try:
             for kind, url in self._LIBRARY_URLS.items():
@@ -133,7 +133,7 @@ class AssetManager:
                         "rotationCenterY": item.get("rotationCenterY", 0),
                         "bitmapResolution": item.get("bitmapResolution", 1),
                     }
-            print(f"{sum(len(v) for v in result.values())} Assets ✓")
+            print(f"{sum(len(v) for v in result.values())} Assets ")
             try:
                 self._CACHE_FILE.write_text(json.dumps(result, separators=(",",":")), encoding="utf-8")
             except Exception:
@@ -176,13 +176,13 @@ class AssetManager:
                         "rotationCenterX": entry["rotationCenterX"],
                         "rotationCenterY": entry["rotationCenterY"]}
             if path_str is None:
-                print(f"      ⚠ '{name}' nicht in Bibliothek → Platzhalter")
+                print(f"       '{name}' nicht in Bibliothek → Platzhalter")
                 return self._fallback_costume(name)
         if path_str is None:
             return self._fallback_costume(name)
         path = (self.base_dir / path_str).resolve()
         if not path.exists():
-            print(f"      ⚠ Bild nicht gefunden: {path}")
+            print(f"       Bild nicht gefunden: {path}")
             print(f"         Lege '{path.name}' neben dein Script.")
             return self._fallback_costume(name)
         suffix = path.suffix.lower()
@@ -205,11 +205,11 @@ class AssetManager:
                 buf = io.BytesIO(); img.save(buf, "PNG")
                 return self._png_costume(buf.getvalue(), name)
             except Exception as e:
-                print(f"      ⚠ Bildfehler ({path.name}): {e} → Platzhalter")
+                print(f"       Bildfehler ({path.name}): {e} → Platzhalter")
                 return self._fallback_costume(name)
         if suffix == ".png":
             return self._png_costume(path.read_bytes(), name)
-        print(f"      ⚠ Pillow nicht installiert → Platzhalter")
+        print(f"       Pillow nicht installiert → Platzhalter")
         return self._fallback_costume(name)
 
     def _fallback_costume(self, name: str) -> dict:
@@ -262,7 +262,7 @@ class AssetManager:
             return self._fallback_sound(name)
         path = (self.base_dir / path_str).resolve()
         if not path.exists():
-            print(f"      ⚠ Sound nicht gefunden: {path} → Stille")
+            print(f"       Sound nicht gefunden: {path} → Stille")
             return self._fallback_sound(name)
         suffix = path.suffix.lower().lstrip(".")
         fmt = {"wav":"wav","mp3":"mp3","ogg":"wav","flac":"wav"}.get(suffix, "wav")
@@ -272,7 +272,7 @@ class AssetManager:
                     "format": "", "rate": 44100, "sampleCount": 0,
                     "md5ext": f"{asset_id}.{fmt}"}
         except Exception as e:
-            print(f"      ⚠ Soundfehler: {e} → Stille")
+            print(f"       Soundfehler: {e} → Stille")
             return self._fallback_sound(name)
 
     def _fallback_sound(self, name: str) -> dict:
@@ -402,7 +402,7 @@ class ErrorCollector:
         return any(d.severity == "error" for d in self.errors)
 
     def _render(self, item: Diagnostic, index: int, total: int):
-        prefix = f"[{index}]" if total > 1 else "✗"
+        prefix = f"[{index}]" if total > 1 else ""
         print(f"  {prefix} Zeile {item.line}, Spalte {item.column} [{item.code}]: {item.message}")
         lines = self.source.splitlines()
         if 1 <= item.line <= len(lines):
@@ -411,7 +411,7 @@ class ErrorCollector:
             width = max(1, (item.end_column or (item.column + 1)) - item.column)
             print(f"            │ {' ' * (item.column - 1)}{'^' * min(width, 80)}")
         if item.fix:
-            print(f"       💡 Fix: {item.fix}")
+            print(f"        Fix: {item.fix}")
 
     def print_all(self):
         if not self.errors:
@@ -419,11 +419,11 @@ class ErrorCollector:
         errors = [d for d in self.errors if d.severity == "error"]
         warnings = [d for d in self.errors if d.severity == "warning"]
         if warnings:
-            print(f"\n  ⚠  {len(warnings)} Warnung(en):")
+            print(f"\n    {len(warnings)} Warnung(en):")
             for i, item in enumerate(warnings, 1):
                 self._render(item, i, len(warnings))
         if errors:
-            print(f"\n  ✗  {len(errors)} Fehler gefunden:\n")
+            print(f"\n    {len(errors)} Fehler gefunden:\n")
             for i, item in enumerate(errors, 1):
                 self._render(item, i, len(errors))
         print()
@@ -523,7 +523,7 @@ def tokenize(source: str, collector: ErrorCollector | None = None) -> list[Token
         if kind == "IDENT":
             sanitized = _sanitize_ident(value)
             if sanitized != value:
-                print(f"  ⚠  Zeile {start_line}, Spalte {start_column}: Bezeichner {value!r} enthält ungültige Zeichen "
+                print(f"    Zeile {start_line}, Spalte {start_column}: Bezeichner {value!r} enthält ungültige Zeichen "
                       f"→ automatisch zu {sanitized!r} sanitisiert")
                 value = sanitized
             if value in KEYWORDS:
@@ -811,10 +811,14 @@ class Parser:
         return v
 
     def expect_semi(self) -> str | None:
-        """Konsumiert ';' (falls vorhanden) und gibt danach stehenden
-        Inline-Kommentar zurück (oder None)."""
-        if self.peek()[1] == ";":
-            self.consume()
+        """Erfordert ';'; Zeilenumbrüche sind keine Statement-Trenner."""
+        tok = self._token()
+        if self.peek()[0] != "SEMI":
+            self._add_error_at(tok, "Statement nicht mit ';' abgeschlossen.",
+                               "Jede einfache Anweisung mit ';' beenden. Beispiel: move(10);",
+                               code="P016")
+            raise SyntaxError("__collected__")
+        self.consume("SEMI")
         return self._collect_inline_comment()
 
     def _stmt(self, node: dict, comment: str | None) -> dict:
@@ -870,8 +874,6 @@ class Parser:
                 if k == "SEMI":
                     self.pos += 1
                     return
-                if ln > start_line and self._is_statement_boundary(tok):
-                    return
                 if self._is_statement_boundary(tok) and self.pos != start_pos:
                     return
 
@@ -897,10 +899,6 @@ class Parser:
             self.pos += 1
             advanced = True
 
-            # Bei einem kaputten Klammerausdruck trotzdem in der nächsten Zeile neu ansetzen.
-            nxt = self.peek()
-            if nxt[0] != "EOF" and nxt[2] > start_line and self._is_statement_boundary(nxt):
-                return
 
         # EOF erreicht; keine weitere Recovery möglich.
 
@@ -935,7 +933,7 @@ class Parser:
         if ext_id:
             if ext_id not in self.extensions:
                 self.extensions.append(ext_id)
-            print(f"  📦 Import: {raw} → Extension '{ext_id}'")
+            print(f"   Import: {raw} → Extension '{ext_id}'")
         else:
             self.collector.add(
                 ln,
@@ -3132,7 +3130,7 @@ def build_project(ast: dict, asset_mgr: AssetManager) -> dict:
                 extensions.append(ext_id)
 
     return {"targets":targets,"monitors":monitors,"extensions":extensions,
-            "meta":{"semver":"3.0.0","vm":"0.2.0","agent":"scrape-transpiler/6.0"}}
+            "meta":{"semver":"3.0.0","vm":"0.2.0","agent":"scrape-transpiler/7.0"}}
 
 
 def write_sb3(project: dict, asset_mgr: AssetManager, path: str):
@@ -3266,17 +3264,17 @@ class Validator:
 
     def print_report(self):
         if not self.errors and not self.warnings:
-            print("    ✓ Keine Probleme gefunden.")
+            print("     Keine Probleme gefunden.")
             return
         if self.warnings:
-            print(f"\n    ⚠  {len(self.warnings)} Warnung(en):")
+            print(f"\n      {len(self.warnings)} Warnung(en):")
             for warning in self.warnings:
-                print(f"       ⚠  {warning}")
+                print(f"         {warning}")
         if self.errors:
-            print(f"\n    ✗  {len(self.errors)} Validierungsfehler:")
+            print(f"\n      {len(self.errors)} Validierungsfehler:")
             lines = self.source.splitlines()
             for i, error in enumerate(self.errors, 1):
-                prefix = f"[{i}]" if len(self.errors) > 1 else "✗"
+                prefix = f"[{i}]" if len(self.errors) > 1 else ""
                 print(f"       {prefix} {error}")
                 m = re.match(r"Zeile (\d+), Spalte (\d+):", error)
                 if m:
@@ -3286,7 +3284,7 @@ class Validator:
                         print(f"                   │ {' ' * (col - 1)}^")
                 fix = self._fix_for_error(error)
                 if fix:
-                    print(f"           💡 Fix: {fix}")
+                    print(f"            Fix: {fix}")
 
 
 # ═══════════════════════════════════════════════════════
@@ -3434,7 +3432,7 @@ def save_window_state(app: str, process_name: str):
     if geo:
         states = _load_win_states(); states[app] = geo; _save_win_states(states)
         pos = "maximiert" if geo.get("maximized") else f"{geo['x']},{geo['y']}  {geo['w']}×{geo['h']}"
-        print(f"  💾  Fensterposition gespeichert ({pos})")
+        print(f"    Fensterposition gespeichert ({pos})")
     else:
         print(f"  ℹ  Fensterposition konnte nicht ausgelesen werden")
 
@@ -3445,14 +3443,14 @@ def restore_window_state(app: str, process_name: str):
     def _restore():
         system = platform.system(); pname = process_name.replace(".exe","")
         MAX_WAIT = 15; POLL = 0.4
-        print(f"  🔄  Warte auf Fenster von {pname}...")
+        print(f"    Warte auf Fenster von {pname}...")
         deadline = time.time() + MAX_WAIT; hwnd = None
         while time.time() < deadline:
             hwnd = _get_hwnd_windows(pname) if system == "Windows" else True
             if hwnd: break
             time.sleep(POLL)
         if not hwnd:
-            print(f"  ⚠  Fenster von {pname} nicht gefunden – Position nicht wiederhergestellt"); return
+            print(f"    Fenster von {pname} nicht gefunden – Position nicht wiederhergestellt"); return
         load_deadline = time.time() + 2.0
         while time.time() < load_deadline:
             if system == "Windows":
@@ -3472,14 +3470,14 @@ def restore_window_state(app: str, process_name: str):
                 else:
                     dx=abs(actual["x"]-geo["x"]); dy=abs(actual["y"]-geo["y"])
                     dw=abs(actual["w"]-geo["w"]); dh=abs(actual["h"]-geo["h"])
-                    print(f"  ↳  Versuch {attempt+1}: ist ({actual['x']},{actual['y']} {actual['w']}×{actual['h']}) soll ({geo['x']},{geo['y']} {geo['w']}×{geo['h']})")
+                    print(f"    Versuch {attempt+1}: ist ({actual['x']},{actual['y']} {actual['w']}×{actual['h']}) soll ({geo['x']},{geo['y']} {geo['w']}×{geo['h']})")
                     if dx<=tol and dy<=tol and dw<=tol and dh<=tol: success = True; break
                     time.sleep(0.5)
             else:
                 success = ok; break
         pos = "maximiert" if geo.get("maximized") else f"{geo['x']},{geo['y']} {geo['w']}×{geo['h']}"
-        if success: print(f"  ✓  Fensterposition wiederhergestellt ({pos})")
-        else: print(f"  ⚠  Fenster springt zurück — Electron überschreibt Position")
+        if success: print(f"    Fensterposition wiederhergestellt ({pos})")
+        else: print(f"    Fenster springt zurück — Electron überschreibt Position")
     t = threading.Thread(target=_restore, daemon=True); t.start()
 
 def _run_ps(script: str, timeout: int = 8) -> str:
@@ -3642,11 +3640,11 @@ def launch_app(sb3_path: str, app: str, replace: bool):
     label       = profile["label"]
     if replace:
         if system == "Windows" and app == "turbowarp":
-            kill = _find_turbowarp_pname(); print(f"  🔍  Prozessname: {kill}")
+            kill = _find_turbowarp_pname(); print(f"    Prozessname: {kill}")
         else:
             kill = sys_profile["kill"]
         save_window_state(app, kill)
-        print(f"  ⏹  Beende laufende {label}-Instanzen...")
+        print(f"    Beende laufende {label}-Instanzen...")
         if system == "Windows":
             for pname in ["TurboWarp Desktop.exe","TurboWarp.exe","turbowarp-desktop.exe","turbowarpdesktop.exe"]:
                 subprocess.run(["taskkill","/F","/IM",pname], capture_output=True, timeout=8)
@@ -3657,7 +3655,7 @@ def launch_app(sb3_path: str, app: str, replace: bool):
     if system == "Windows" and app == "scratch":
         exe = next((c for c in sys_profile["candidates"] if Path(c).exists()), None)
         if exe:
-            print(f"  ▶  {mode} {label}-Instanz: {Path(sb3_abs).name}")
+            print(f"    {mode} {label}-Instanz: {Path(sb3_abs).name}")
             print(f"     (klassische Installation: {exe})")
             subprocess.Popen([exe, sb3_abs])
             if replace: restore_window_state(app, Path(exe).name)
@@ -3665,29 +3663,29 @@ def launch_app(sb3_path: str, app: str, replace: bool):
         print(f"  ℹ  Klassische Installation nicht gefunden.\n     Suche Microsoft Store-Version...")
         aumid = _find_scratch_store_aumid()
         if aumid:
-            print(f"  ✓  Store-Version gefunden: {aumid}")
-            print(f"  ▶  {mode} {label}-Instanz: {Path(sb3_abs).name}")
-            print(f"\n  ⚠  HINWEIS: Die Microsoft Store-Version des Desktop-Players kann\n     .sb3-Dateien nicht direkt per CLI öffnen (Sandbox-Einschränkung).\n     Die App wird geöffnet — lade die Datei manuell über\n     Datei → Vom Computer laden:\n     {sb3_abs}\n")
+            print(f"    Store-Version gefunden: {aumid}")
+            print(f"    {mode} {label}-Instanz: {Path(sb3_abs).name}")
+            print(f"\n    HINWEIS: Die Microsoft Store-Version des Desktop-Players kann\n     .sb3-Dateien nicht direkt per CLI öffnen (Sandbox-Einschränkung).\n     Die App wird geöffnet — lade die Datei manuell über\n     Datei → Vom Computer laden:\n     {sb3_abs}\n")
             _run_ps(f'Start-Process "shell:AppsFolder\\{aumid}"', timeout=5)
             result = _run_ps(f'Set-Clipboard -Value "{sb3_abs}"; Write-Output "ok"', timeout=3)
-            if result == "ok": print("  📋  Dateipfad wurde in die Zwischenablage kopiert.")
+            if result == "ok": print("    Dateipfad wurde in die Zwischenablage kopiert.")
             return
         store_exe = _find_scratch_store_exe()
         if store_exe:
-            print(f"  ✓  Store-Exe gefunden: {store_exe}")
-            print(f"  ▶  {mode} {label}: {Path(sb3_abs).name}")
+            print(f"    Store-Exe gefunden: {store_exe}")
+            print(f"    {mode} {label}: {Path(sb3_abs).name}")
             try: subprocess.Popen([store_exe, sb3_abs])
             except PermissionError:
-                print("  ✗  Zugriff verweigert (WindowsApps benötigt Admin-Rechte).\n     Starte ohne Dateiargument...")
+                print("    Zugriff verweigert (WindowsApps benötigt Admin-Rechte).\n     Starte ohne Dateiargument...")
                 subprocess.Popen([store_exe])
             return
-        print(f"  ✗  Desktop-Player nicht gefunden.\n     Store-Version:  apps.microsoft.com/detail/9pfgj25j6x3\n     Klassische Version:          {profile['download']}\n     Datei manuell öffnen: {sb3_abs}")
+        print(f"    Desktop-Player nicht gefunden.\n     Store-Version:  apps.microsoft.com/detail/9pfgj25j6x3\n     Klassische Version:          {profile['download']}\n     Datei manuell öffnen: {sb3_abs}")
         return
     exe = next((c for c in sys_profile["candidates"] if Path(c).exists()), None)
     if exe is None:
-        print(f"  ⚠  {label} nicht gefunden.\n     Download: {profile['download']}\n     Datei manuell öffnen: {sb3_abs}")
+        print(f"    {label} nicht gefunden.\n     Download: {profile['download']}\n     Datei manuell öffnen: {sb3_abs}")
         return
-    print(f"  ▶  {mode} {label}-Instanz: {Path(sb3_abs).name}")
+    print(f"    {mode} {label}-Instanz: {Path(sb3_abs).name}")
     cmd = sys_profile["launch"](exe, sb3_abs)
     subprocess.Popen(cmd)
     if replace:
@@ -3698,67 +3696,110 @@ def launch_app(sb3_path: str, app: str, replace: bool):
 # ═══════════════════════════════════════════════════════
 #  7.  KOMPILIER-PIPELINE
 # ═══════════════════════════════════════════════════════
+class SemanticAnalyzer:
+    """Semantische Phase: prüft AST-Kontext, Namen, Typen und Scratch-Regeln."""
+    def __init__(self, ast: dict, library: dict, source: str = ""):
+        self._validator = Validator(ast, library, source=source)
+
+    def analyze(self) -> bool:
+        return self._validator.validate()
+
+    def print_report(self):
+        self._validator.print_report()
+
+    @property
+    def errors(self):
+        return self._validator.errors
+
+
+class BytecodeGenerator:
+    """Code-Generierungsphase: wandelt den validierten AST in Scratch-VM-Blöcke um."""
+    def __init__(self, asset_manager: AssetManager):
+        self.asset_manager = asset_manager
+
+    def generate(self, ast: dict) -> dict:
+        return build_project(ast, self.asset_manager)
+
+
 def compile_once(source: str, base_dir: Path, outfile: str,
                  asset_mgr: AssetManager, verbose=True) -> bool:
+    diagnostics = ErrorCollector(source)
+
+    # 1. Lexikalische Analyse
+    if verbose:
+        print("-- [1/4] Lexikalische Analyse (Tokenisierung) --")
+    tokens = tokenize(source, diagnostics)
+    if diagnostics.has_errors():
+        diagnostics.print_all()
+        print("Lexikalische Analyse fehlgeschlagen.")
+        return False
+
+    # 2. Syntaktische Analyse
+    if verbose:
+        print("-- [2/4] Syntaktische Analyse (Parsing) --")
     try:
-        if verbose: print("── [1] Tokenisierung & Parsing ────────────")
-        diagnostics = ErrorCollector(source)
-        tokens = tokenize(source, diagnostics)
         parser = Parser(tokens, diagnostics)
-        ast    = parser.parse_program()
-        if verbose:
-            print(f"    {len(ast['targets'])} Target(s): "
-                  + ", ".join(f"{t['type']} {t['name']}" for t in ast["targets"]))
-            if ast.get("extensions"):
-                print(f"    Extensions: {', '.join(ast['extensions'])}")
-    except SyntaxError as e:
-        msg = str(e)
+        ast = parser.parse_program()
+    except SyntaxError as exc:
+        msg = str(exc)
         if msg == "__all_reported__":
-            print("  ✗  Parsing abgebrochen – alle Fehler oben beheben.")
+            print("Parsing fehlgeschlagen. Bitte die gemeldeten Syntaxfehler beheben.")
         elif msg == "__collected__":
-            print("\n  ✗  Syntaxfehler beim Parsen.")
+            diagnostics.print_all()
+            print("Parsing fehlgeschlagen.")
         else:
-            print(f"\n  ✗  Syntaxfehler: {msg}")
+            print(f"Syntaxfehler: {msg}")
         return False
 
-    if verbose: print("── [2] Validierung ────────────────────────")
-    validator = Validator(ast, AssetManager._library, source=source)
-    ok = validator.validate()
-    validator.print_report()
-    if not ok:
-        print(f"\n  ✗  Validierung fehlgeschlagen – {len(validator.errors)} Fehler oben beheben.")
+    if verbose:
+        print(f"    {len(ast['targets'])} Target(s): " +
+              ", ".join(f"{t['type']} {t['name']}" for t in ast["targets"]))
+        if ast.get("extensions"):
+            print(f"    Extensions: {', '.join(ast['extensions'])}")
+
+    # 3. Semantische Analyse
+    if verbose:
+        print("-- [3/4] Semantische Analyse (Type Checking & Context) --")
+    analyzer = SemanticAnalyzer(ast, AssetManager._library, source=source)
+    if not analyzer.analyze():
+        analyzer.print_report()
+        print(f"Semantische Analyse fehlgeschlagen: {len(analyzer.errors)} Fehler.")
+        return False
+    analyzer.print_report()
+
+    # 4. Bytecode-Generierung
+    if verbose:
+        print("-- [4/4] Code-Generierung (Scratch-Bytecode) --")
+    try:
+        project = BytecodeGenerator(asset_mgr).generate(ast)
+        total = sum(len(target["blocks"]) for target in project["targets"])
+        if verbose:
+            print(f"    {total} Blöcke generiert.")
+        json_path = Path(outfile).with_suffix(".json")
+        json_path.write_text(json.dumps(project, indent=2, ensure_ascii=False), encoding="utf-8")
+        write_sb3(project, asset_mgr, outfile)
+        if verbose:
+            print(f"    JSON: {json_path} ({json_path.stat().st_size:,} Bytes)")
+            print(f"    SB3:  {outfile} ({Path(outfile).stat().st_size:,} Bytes)")
+        return True
+    except Exception as exc:
+        print(f"Code-Generierung fehlgeschlagen: {type(exc).__name__}: {exc}")
         return False
 
-    if verbose: print("── [3] Code-Generierung & Assets ──────────")
-    project = build_project(ast, asset_mgr)
-    total   = sum(len(t["blocks"]) for t in project["targets"])
-    if verbose: print(f"    {total} Blöcke")
 
-    if verbose: print("── [4] Ausgabe ─────────────────────────────")
-    json_path = Path(outfile).with_suffix(".json")
-    json_path.write_text(json.dumps(project, indent=2, ensure_ascii=False), encoding="utf-8")
-    if verbose: print(f"✓  {json_path}  ({json_path.stat().st_size:,} Bytes)")
-    write_sb3(project, asset_mgr, outfile)
-    if verbose: print(f"✓  {outfile}  ({Path(outfile).stat().st_size:,} Bytes)")
-    return True
-
-
-# ═══════════════════════════════════════════════════════
-#  8.  WATCH-MODUS
-# ═══════════════════════════════════════════════════════
 def watch_mode(src_path: Path, outfile: str, app_mode: tuple | None):
-    print(f"👁  Watch-Modus aktiv – beobachte: {src_path}")
+    print(f"  Watch-Modus aktiv – beobachte: {src_path}")
     print("   Ctrl+C zum Beenden\n")
     last_mtime = None; first_run = True
     while True:
         try:
             mtime = src_path.stat().st_mtime
         except FileNotFoundError:
-            print(f"  ⚠  Datei nicht gefunden: {src_path}"); time.sleep(1); continue
+            print(f"    Datei nicht gefunden: {src_path}"); time.sleep(1); continue
         if mtime != last_mtime:
             last_mtime = mtime
             if not first_run:
-                print(f"\n{'─'*45}\n🔄  Änderung erkannt – {time.strftime('%H:%M:%S')}")
+                print(f"\n{'─'*45}\n  Änderung erkannt – {time.strftime('%H:%M:%S')}")
             first_run = False
             source    = src_path.read_text(encoding="utf-8")
             base_dir  = src_path.parent
@@ -3766,7 +3807,7 @@ def watch_mode(src_path: Path, outfile: str, app_mode: tuple | None):
             try:
                 success = compile_once(source, base_dir, outfile, asset_mgr)
             except Exception as exc:
-                print(f"  ✗  Unerwarteter Fehler beim Kompilieren: {exc}"); success = False
+                print(f"    Unerwarteter Fehler beim Kompilieren: {exc}"); success = False
             if success and app_mode:
                 app, mode = app_mode
                 label = APP_PROFILES[app]["label"]
@@ -3781,7 +3822,7 @@ def watch_mode(src_path: Path, outfile: str, app_mode: tuple | None):
 # ═══════════════════════════════════════════════════════
 def print_help():
     print(r"""
-Transpiler.py  v6.0
+Transpiler.py  v7.0
 ────────────────────────────────────────────────────────
 VERWENDUNG:
   python transpiler.py <eingabe.scrape> [Optionen]
@@ -4022,7 +4063,7 @@ def main():
         try:
             watch_mode(infile, str(outfile_path), app_mode)
         except KeyboardInterrupt:
-            print("\n👋  Watch-Modus beendet.")
+            print("\n  Watch-Modus beendet.")
         return
 
     source = infile.read_text(encoding="utf-8")
